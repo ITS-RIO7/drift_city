@@ -72,7 +72,7 @@ Mesh3D carMesh(CarModel car, {Color? body}) {
   final hw = w / 2;
 
   final paint = body ?? car.color;
-  final glass = const Color(0xFF1A2029);
+  final glass = const Color(0xFF2E3B4D);
   final tyre = const Color(0xFF101014);
   final rim = const Color(0xFFBEC3CA);
   final lightF = const Color(0xFFFFF6D0);

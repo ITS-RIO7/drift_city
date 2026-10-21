@@ -63,6 +63,7 @@ class DriftGame extends FlameGame {
   // Chase camera sitting just behind and slightly above the car.
   static const double _camDist = 7.5;
   static const double _camHeight = 3.0;
+  static const double _camMinDist = 5.5;
 
   final List<_Building> _buildings = <_Building>[];
   final List<SmokeParticle> _smoke = <SmokeParticle>[];
@@ -304,7 +305,8 @@ class DriftGame extends FlameGame {
       diff = (diff + math.pi) % (2 * math.pi) - math.pi;
       final align = clampD(gripLat * 0.35, 0.0, 1.0) *
           clampD(speed / maxSpeed, 0.0, 1.0);
-      angle += diff * align * 1.2 * dt;
+      // Cap the recovery rate so the nose can never snap around.
+      angle += clampD(diff * align * 1.2, -1.5, 1.5) * dt;
     }
 
     vel = vm.Vector2(math.cos(angle), math.sin(angle)) * vForward +
@@ -334,9 +336,13 @@ class DriftGame extends FlameGame {
 
         final impact = vel.length;
         final vn = vel.x * nx + vel.y * ny;
-        vel.x -= 1.5 * vn * nx;
-        vel.y -= 1.5 * vn * ny;
-        vel *= 0.4;
+        if (vn < 0) {
+          // Slide along the wall instead of bouncing backwards - a bounce
+          // reverses the car and makes the chase camera whip around it.
+          vel.x -= vn * nx;
+          vel.y -= vn * ny;
+        }
+        vel *= 0.65;
 
         if (impact > 120) {
           combo = 0;
@@ -401,8 +407,23 @@ class DriftGame extends FlameGame {
     final fx = math.cos(angle);
     final fz = math.sin(angle);
     final desired = vm.Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
-    final t = clampD(dt * 4.5, 0.0, 1.0);
-    _camera.position = _camera.position + (desired - _camera.position) * t;
+    final t = clampD(dt * 6.0, 0.0, 1.0);
+    var next = _camera.position + (desired - _camera.position) * t;
+
+    // Hard rule: the camera must never end up on top of (or inside) the car.
+    // Without this a spin or a sudden direction change lets the camera whip
+    // through the car and the car looks shattered.
+    final toCar = vm.Vector3(pos.x - next.x, 1.0 - next.y, pos.y - next.z);
+    final dist = toCar.length;
+    if (dist > 0.001 && dist < _camMinDist) {
+      final dir = toCar / dist;
+      next = next - dir * (_camMinDist - dist);
+    } else if (dist <= 0.001) {
+      next = desired;
+    }
+    if (next.y < 1.4) next.y = 1.4;
+
+    _camera.position = next;
     _camera.target = vm.Vector3(pos.x, 1.0, pos.y);
   }
 
