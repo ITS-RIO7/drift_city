@@ -131,7 +131,10 @@ class _HudOverlay extends StatelessWidget {
                   children: [
                     _statBlock('SCORE', '${data.score.round()}'),
                     _statBlock('TIME', '${data.timeLeft.ceil()}s'),
-                    _statBlock('x${data.multiplier}', '${data.speed.round()} km/h'),
+                    _statBlock(
+                      'x${data.multiplier}',
+                      '${(data.speed * 0.55).round()} km/h',
+                    ),
                     IconButton(
                       onPressed: () {
                         game.pauseEngine();

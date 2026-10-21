@@ -32,8 +32,10 @@ class CarModel {
   });
 
   // Physics values derived from the stats, used by the game engine.
-  double get maxSpeed => 300 + speed * 150;
-  double get enginePower => 320 + speed * 220;
+  // Lower top speed and gentle acceleration so the car builds speed slowly
+  // instead of snapping to its maximum.
+  double get maxSpeed => 230 + speed * 70;
+  double get enginePower => 105 + speed * 70;
   // Grip and steering are tuned so the car drives straight and only slides
   // when provoked - it should never spin out of control.
   double get gripLat => 1.9 - drift * 0.8;

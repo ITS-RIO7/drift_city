@@ -60,8 +60,9 @@ class DriftGame extends FlameGame {
   static const double carRadius = 2.4;
   static const double runSeconds = 60;
 
-  static const double _camDist = 11.0;
-  static const double _camHeight = 5.2;
+  // Chase camera sitting just behind and slightly above the car.
+  static const double _camDist = 7.5;
+  static const double _camHeight = 3.0;
 
   final List<_Building> _buildings = <_Building>[];
   final List<SmokeParticle> _smoke = <SmokeParticle>[];
@@ -126,7 +127,7 @@ class DriftGame extends FlameGame {
     _groundMesh = _buildGround();
 
     _camera.position = vm.Vector3(pos.x, _camHeight, pos.y - _camDist);
-    _camera.target = vm.Vector3(pos.x, 0.9, pos.y);
+    _camera.target = vm.Vector3(pos.x, 1.0, pos.y);
     _ready = true;
   }
 
@@ -276,7 +277,8 @@ class DriftGame extends FlameGame {
       }
     }
 
-    vForward -= vForward * 0.7 * dt;
+    // Gentle drag: the car eases up to speed instead of snapping to it.
+    vForward -= vForward * 0.45 * dt;
     vForward = clampD(vForward, -maxSpeed * 0.4, maxSpeed);
 
     // Lateral grip: enough to drive straight, loose enough to drift.
@@ -401,7 +403,7 @@ class DriftGame extends FlameGame {
     final desired = vm.Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
     final t = clampD(dt * 4.5, 0.0, 1.0);
     _camera.position = _camera.position + (desired - _camera.position) * t;
-    _camera.target = vm.Vector3(pos.x, 0.9, pos.y);
+    _camera.target = vm.Vector3(pos.x, 1.0, pos.y);
   }
 
   @override
