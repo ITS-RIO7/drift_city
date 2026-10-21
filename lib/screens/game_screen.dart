@@ -48,9 +48,14 @@ class _GameScreenState extends State<GameScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     if (player.useTilt) {
+      // The phone is held in landscape, so the roll we steer with shows up on
+      // the x axis. The first reading becomes the neutral point, so simply
+      // holding the phone still steers straight (no runaway turning).
+      double? neutral;
       _accel = accelerometerEventStream().listen((event) {
-        // Phone held in landscape: side-to-side tilt steers the car.
-        _game.tiltValue = clampD(-event.y / 5.0, -1.0, 1.0);
+        final base = neutral ?? event.x;
+        neutral = base;
+        _game.tiltValue = clampD((event.x - base) / 3.5, -1.0, 1.0);
       });
     }
   }

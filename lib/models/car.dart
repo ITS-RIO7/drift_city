@@ -34,8 +34,10 @@ class CarModel {
   // Physics values derived from the stats, used by the game engine.
   double get maxSpeed => 300 + speed * 150;
   double get enginePower => 320 + speed * 220;
-  double get gripLat => 1.7 - drift * 1.05;
-  double get steerRate => 2.4 + grip * 0.9;
+  // Grip and steering are tuned so the car drives straight and only slides
+  // when provoked - it should never spin out of control.
+  double get gripLat => 1.9 - drift * 0.8;
+  double get steerRate => 2.0 + grip * 0.6;
 }
 
 const List<CarModel> kCars = <CarModel>[

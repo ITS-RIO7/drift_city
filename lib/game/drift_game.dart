@@ -257,7 +257,7 @@ class DriftGame extends FlameGame {
 
   bool _isDrifting() {
     final lateral = vel.dot(vm.Vector2(-math.sin(angle), math.cos(angle))).abs();
-    return vel.length > 80 && lateral > 40;
+    return vel.length > 70 && lateral > 30;
   }
 
   void _physics(double dt) {
@@ -278,14 +278,35 @@ class DriftGame extends FlameGame {
 
     vForward -= vForward * 0.7 * dt;
     vForward = clampD(vForward, -maxSpeed * 0.4, maxSpeed);
-    vLateral *= math.exp(-gripLat * 3.0 * dt);
 
+    // Lateral grip: enough to drive straight, loose enough to drift.
+    vLateral *= math.exp(-gripLat * 5.0 * dt);
+
+    // Steering, capped so the car can never spin like a top.
     final steer = useTilt ? tiltValue : steerInput;
     final speedFactor = clampD(vForward.abs() / maxSpeed, 0.0, 1.0);
     final direction = vForward >= 0 ? 1.0 : -1.0;
-    angle += steer * steerRate * sensitivity * speedFactor * direction * dt;
+    final yawRate = clampD(
+      steer * steerRate * sensitivity * speedFactor * direction,
+      -2.0,
+      2.0,
+    );
+    angle += yawRate * dt;
 
-    vel = forward * vForward + right * vLateral;
+    // Self-aligning torque: the nose eases toward the direction of travel, so
+    // the car straightens out instead of spinning.
+    final speed = vel.length;
+    if (speed > 15) {
+      final travel = math.atan2(vel.y, vel.x);
+      var diff = travel - angle;
+      diff = (diff + math.pi) % (2 * math.pi) - math.pi;
+      final align = clampD(gripLat * 0.35, 0.0, 1.0) *
+          clampD(speed / maxSpeed, 0.0, 1.0);
+      angle += diff * align * 1.2 * dt;
+    }
+
+    vel = vm.Vector2(math.cos(angle), math.sin(angle)) * vForward +
+        vm.Vector2(-math.sin(angle), math.cos(angle)) * vLateral;
     pos += vel * dt;
     _collide();
   }
