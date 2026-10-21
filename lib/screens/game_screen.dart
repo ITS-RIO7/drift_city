@@ -245,15 +245,17 @@ class _ControlsOverlay extends StatelessWidget {
       ],
     );
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: game.leftHanded
-              ? [pedals, steering]
-              : [steering, pedals],
+    // Explicitly bottom-anchored: the game overlay is not stretched, so
+    // without this the row would sit at the top of the screen.
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: game.leftHanded ? [pedals, steering] : [steering, pedals],
+          ),
         ),
       ),
     );
