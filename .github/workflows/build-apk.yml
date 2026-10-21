@@ -1,0 +1,118 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Guard against a scaffold that has only Dart files. Build the android/
+      # folder inside a throwaway project and copy just that folder in, so our
+      # own lib/ and pubspec.yaml can never be overwritten.
+      - name: Generate android folder if missing
+        run: |
+          if [ ! -d "android" ]; then
+            TMP="$(mktemp -d)"
+            flutter create "$TMP/seed" --platforms=android --project-name drift_city
+            cp -r "$TMP/seed/android" ./android
+            rm -rf "$TMP"
+          fi
+
+      # Configure Android project: repo-specific applicationId / namespace,
+      # and leave compileSdk alone so Flutter's own value applies.
+      - name: Configure Android project
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          repo = os.environ.get("GITHUB_REPOSITORY", "app")
+          app_id = "com.example." + repo.split("/")[-1]
+
+          for name in ("android/app/build.gradle", "android/app/build.gradle.kts"):
+              path = pathlib.Path(name)
+              if not path.exists():
+                  continue
+              text = path.read_text()
+
+              text = re.sub(
+                  r'(applicationId[ \t]*=?[ \t]*)"[^"]*"',
+                  lambda m: m.group(1) + '"' + app_id + '"',
+                  text,
+              )
+              text = re.sub(
+                  r'(namespace[ \t]*=?[ \t]*)"[^"]*"',
+                  lambda m: m.group(1) + '"' + app_id + '"',
+                  text,
+              )
+
+              path.write_text(text)
+              print("configured", name, "->", app_id)
+
+          manifest = pathlib.Path("android/app/src/main/AndroidManifest.xml")
+          if manifest.exists():
+              m = manifest.read_text()
+              m = re.sub(r'android:label="[^"]*"', 'android:label="DriftCity"', m)
+              manifest.write_text(m)
+              print("labelled the app as DriftCity")
+          PY
+
+      # Print the resolved SDK versions so a future failure is easy to read.
+      - name: Show Android SDK configuration
+        run: |
+          grep -rnE "compileSdk|targetSdk|minSdk|ndkVersion" android/app/build.gradle* || true
+
+      # R8 keep rules (minification itself is skipped via --no-shrink).
+      - name: Gradle fixes (R8 rules)
+        run: |
+          cat > android/app/proguard-rules.pro <<'EOF'
+          -dontwarn com.google.android.play.core.**
+          -dontwarn io.flutter.**
+          -keep class io.flutter.** { *; }
+          -keep class com.google.android.play.core.** { *; }
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # --no-shrink skips R8 minification, the biggest cause of release build failures.
+      - name: Build release APK
+        run: flutter build apk --release --no-shrink
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # When the user asks for the APK (manual run) or a version tag is pushed,
+      # attach the APK to a GitHub Release so it is downloadable as a proper release.
+      - name: Publish APK to GitHub Release
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'apk-latest' }}
+          name: APK build
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          files: build/app/outputs/flutter-apk/app-release.apk
