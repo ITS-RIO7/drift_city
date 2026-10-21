@@ -57,3 +57,11 @@ when the workflow is run manually or a `v*` tag is pushed.
 ## Not done yet
 
 - Sound effects / music (the Settings toggle is stored but audio is not wired up)
+
+## Changelog
+
+- v0.3.5: chase camera clamped so it can never pass through the car; the car
+  slides along walls instead of bouncing backwards.
+- v0.3.4: camera moved right behind the car; slower acceleration and lower top speed.
+- v0.3.3: fixed 3D rendering (back-face culling + corrected face winding);
+  stopped the car spinning out; controls moved to the bottom.
