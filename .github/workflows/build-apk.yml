@@ -105,10 +105,10 @@ jobs:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # When the user asks for the APK (manual run) or a version tag is pushed,
-      # attach the APK to a GitHub Release so it is downloadable as a proper release.
+      # Only a version tag publishes a GitHub Release, so manual runs don't
+      # create extra releases.
       - name: Publish APK to GitHub Release
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'apk-latest' }}

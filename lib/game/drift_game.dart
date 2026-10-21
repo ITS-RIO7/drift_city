@@ -63,7 +63,7 @@ class DriftGame extends FlameGame {
   // Chase camera sitting just behind and slightly above the car.
   static const double _camDist = 7.5;
   static const double _camHeight = 3.0;
-  static const double _camMinDist = 5.5;
+  double _camYaw = 0;
 
   final List<_Building> _buildings = <_Building>[];
   final List<SmokeParticle> _smoke = <SmokeParticle>[];
@@ -127,6 +127,7 @@ class DriftGame extends FlameGame {
     _buildCity();
     _groundMesh = _buildGround();
 
+    _camYaw = angle;
     _camera.position = vm.Vector3(pos.x, _camHeight, pos.y - _camDist);
     _camera.target = vm.Vector3(pos.x, 1.0, pos.y);
     _ready = true;
@@ -404,26 +405,21 @@ class DriftGame extends FlameGame {
   }
 
   void _updateCamera(double dt) {
-    final fx = math.cos(angle);
-    final fz = math.sin(angle);
-    final desired = vm.Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
-    final t = clampD(dt * 6.0, 0.0, 1.0);
-    var next = _camera.position + (desired - _camera.position) * t;
+    // Smooth the camera's YAW, not its position. The camera then orbits the car
+    // at a fixed radius and can never pass through it - smoothing the position
+    // used to cut straight through the car when the car flipped direction,
+    // which made the car look like a shattered mess for a moment.
+    var diff = angle - _camYaw;
+    diff = (diff + math.pi) % (2 * math.pi) - math.pi;
+    _camYaw += diff * clampD(dt * 4.0, 0.0, 1.0);
 
-    // Hard rule: the camera must never end up on top of (or inside) the car.
-    // Without this a spin or a sudden direction change lets the camera whip
-    // through the car and the car looks shattered.
-    final toCar = vm.Vector3(pos.x - next.x, 1.0 - next.y, pos.y - next.z);
-    final dist = toCar.length;
-    if (dist > 0.001 && dist < _camMinDist) {
-      final dir = toCar / dist;
-      next = next - dir * (_camMinDist - dist);
-    } else if (dist <= 0.001) {
-      next = desired;
-    }
-    if (next.y < 1.4) next.y = 1.4;
-
-    _camera.position = next;
+    final cfx = math.cos(_camYaw);
+    final cfz = math.sin(_camYaw);
+    _camera.position = vm.Vector3(
+      pos.x - cfx * _camDist,
+      _camHeight,
+      pos.y - cfz * _camDist,
+    );
     _camera.target = vm.Vector3(pos.x, 1.0, pos.y);
   }
 
