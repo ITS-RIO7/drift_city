@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game_state.dart';
+import '../models/car.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -9,11 +10,43 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerData>();
+    final car = player.selectedCar;
+    final current = player.colorFor(car);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _SectionHeader('Paint - ${car.name}'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: kCarPalette.map((color) {
+                final selected = color.toARGB32() == current.toARGB32();
+                return GestureDetector(
+                  onTap: () => context.read<PlayerData>().setCarColor(car, color),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected ? Colors.white : Colors.white24,
+                        width: selected ? 3 : 1,
+                      ),
+                    ),
+                    child: selected
+                        ? const Icon(Icons.check, size: 20, color: Colors.white)
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const Divider(),
           const _SectionHeader('Controls'),
           SwitchListTile(
             title: const Text('Tilt steering'),
@@ -54,6 +87,7 @@ class SettingsScreen extends StatelessWidget {
             value: player.soundOn,
             onChanged: (value) => context.read<PlayerData>().setSound(value),
           ),
+          const SizedBox(height: 24),
         ],
       ),
     );

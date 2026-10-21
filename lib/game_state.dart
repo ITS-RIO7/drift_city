@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import 'models/car.dart';
 import 'services/storage_service.dart';
 
-/// Holds the player's coins, unlocked cars, selected car and settings,
-/// and persists them locally.
+/// Holds the player's coins, unlocked cars, selected car, paint colours and
+/// settings, and persists them locally.
 class PlayerData extends ChangeNotifier {
   final StorageService _storage = StorageService();
 
@@ -17,6 +17,8 @@ class PlayerData extends ChangeNotifier {
   double steerSensitivity = 1.0;
   double buttonSize = 1.0;
   bool leftHanded = false;
+
+  Map<String, int> _carColors = <String, int>{};
 
   Future<void> load() async {
     coins = await _storage.loadCoins();
@@ -37,6 +39,7 @@ class PlayerData extends ChangeNotifier {
     steerSensitivity = await _storage.loadSensitivity();
     buttonSize = await _storage.loadButtonSize();
     leftHanded = await _storage.loadLeftHanded();
+    _carColors = await _storage.loadCarColors();
     notifyListeners();
   }
 
@@ -47,11 +50,19 @@ class PlayerData extends ChangeNotifier {
 
   bool isUnlocked(String id) => unlocked.contains(id);
 
-  Future<void> selectCar(String id) async {
-    if (!isUnlocked(id)) return;
+  /// The paint colour for a car: the player's override, or its default.
+  Color colorFor(CarModel car) {
+    final value = _carColors[car.id];
+    return value == null ? car.color : Color(value);
+  }
+
+  /// Selects a car immediately (persisting in the background) so callers
+  /// never have to await anything before navigating.
+  void selectCar(String id) {
+    if (!isUnlocked(id) || id == selectedCarId) return;
     selectedCarId = id;
-    await _storage.saveSelected(id);
     notifyListeners();
+    _storage.saveSelected(id);
   }
 
   /// Returns true if the car is now unlocked.
@@ -71,6 +82,12 @@ class PlayerData extends ChangeNotifier {
     coins += amount;
     await _storage.saveCoins(coins);
     notifyListeners();
+  }
+
+  Future<void> setCarColor(CarModel car, Color color) async {
+    _carColors[car.id] = color.toARGB32();
+    notifyListeners();
+    await _storage.saveCarColors(_carColors);
   }
 
   Future<void> setSound(bool value) async {

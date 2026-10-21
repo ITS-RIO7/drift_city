@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'game_state.dart';
@@ -6,6 +7,13 @@ import 'screens/garage_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // DriftCity is a landscape game: lock the whole app to landscape so the
+  // garage and the game both rotate as soon as the app opens.
+  SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const MyApp());
 }
 

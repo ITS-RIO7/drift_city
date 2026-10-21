@@ -42,17 +42,18 @@ class _GarageScreenState extends State<GarageScreen> {
 
     final car = kCars[_index];
     final unlocked = player.isUnlocked(car.id);
+    final bodyColor = player.colorFor(car);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B0D12),
       body: Stack(
         children: [
-          Positioned.fill(child: CarViewer(car: car)),
+          Positioned.fill(child: CarViewer(car: car, bodyColor: bodyColor)),
 
           // Top bar: coins + settings.
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -89,21 +90,21 @@ class _GarageScreenState extends State<GarageScreen> {
             alignment: Alignment.bottomCenter,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       car.name,
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _StatRow(car: car),
-                    const SizedBox(height: 18),
-                    _action(context, player, car, unlocked),
+                    const SizedBox(height: 12),
+                    _action(context, player, car, unlocked, bodyColor),
                   ],
                 ),
               ),
@@ -119,27 +120,31 @@ class _GarageScreenState extends State<GarageScreen> {
     PlayerData player,
     CarModel car,
     bool unlocked,
+    Color bodyColor,
   ) {
     if (unlocked) {
       return FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: const Color(0xFF2ECC40),
           foregroundColor: Colors.black,
-          minimumSize: const Size(210, 58),
+          minimumSize: const Size(210, 54),
           textStyle: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             letterSpacing: 2,
           ),
         ),
-        onPressed: () async {
-          await player.selectCar(car.id);
-          if (!context.mounted) return;
+        // Navigate immediately: selecting the car only updates local state
+        // and persists in the background, so nothing can block the tap.
+        onPressed: () {
+          player.selectCar(car.id);
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => GameScreen(car: car)),
+            MaterialPageRoute(
+              builder: (_) => GameScreen(car: car, bodyColor: bodyColor),
+            ),
           );
         },
-        icon: const Icon(Icons.play_arrow, size: 30),
+        icon: const Icon(Icons.play_arrow, size: 28),
         label: const Text('PLAY'),
       );
     }
@@ -159,14 +164,12 @@ class _GarageScreenState extends State<GarageScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: canAfford
-                ? const Color(0xFFF2C400)
-                : Colors.white24,
+            backgroundColor: canAfford ? const Color(0xFFF2C400) : Colors.white24,
             foregroundColor: Colors.black,
-            minimumSize: const Size(210, 58),
+            minimumSize: const Size(210, 54),
             textStyle: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

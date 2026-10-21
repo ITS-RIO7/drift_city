@@ -50,9 +50,10 @@ class SmokeParticle {
 /// 3D drift game: chase-camera view of a small city. Hold a slide to build
 /// a score multiplier before the timer runs out.
 class DriftGame extends FlameGame {
-  DriftGame({required this.car, this.onGameOver});
+  DriftGame({required this.car, this.bodyColor, this.onGameOver});
 
   final CarModel car;
+  final Color? bodyColor;
   final void Function(int score)? onGameOver;
 
   static const double worldSize = 400;
@@ -104,6 +105,7 @@ class DriftGame extends FlameGame {
   int multiplier = 1;
   double timeLeft = runSeconds;
   bool isOver = false;
+  bool _ready = false;
 
   late double maxSpeed;
   late double enginePower;
@@ -119,12 +121,13 @@ class DriftGame extends FlameGame {
     gripLat = car.gripLat;
     steerRate = car.steerRate;
 
-    _carMesh = carMesh(car);
+    _carMesh = carMesh(car, body: bodyColor);
     _buildCity();
     _groundMesh = _buildGround();
 
     _camera.position = vm.Vector3(pos.x, _camHeight, pos.y - _camDist);
     _camera.target = vm.Vector3(pos.x, 0.9, pos.y);
+    _ready = true;
   }
 
   void _buildCity() {
@@ -221,7 +224,7 @@ class DriftGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
-    if (isOver) return;
+    if (!_ready || isOver) return;
 
     timeLeft -= dt;
     if (timeLeft <= 0) {
@@ -387,6 +390,7 @@ class DriftGame extends FlameGame {
       Rect.fromLTWH(0, 0, s.width, s.height),
       Paint()..color = const Color(0xFF0C0E14),
     );
+    if (!_ready) return;
 
     final aspect = s.height <= 0 ? 1.0 : s.width / s.height;
     _camera.update(aspect);

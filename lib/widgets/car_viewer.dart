@@ -9,9 +9,10 @@ import '../models/car.dart';
 
 /// A slowly rotating 360-degree 3D view of a car, used in the garage.
 class CarViewer extends StatefulWidget {
-  const CarViewer({super.key, required this.car});
+  const CarViewer({super.key, required this.car, this.bodyColor});
 
   final CarModel car;
+  final Color? bodyColor;
 
   @override
   State<CarViewer> createState() => _CarViewerState();
@@ -26,7 +27,7 @@ class _CarViewerState extends State<CarViewer>
   @override
   void initState() {
     super.initState();
-    _mesh = carMesh(widget.car);
+    _mesh = carMesh(widget.car, body: widget.bodyColor);
     _ticker = createTicker((elapsed) {
       setState(() => _t = elapsed.inMilliseconds / 1000.0);
     })
@@ -36,8 +37,9 @@ class _CarViewerState extends State<CarViewer>
   @override
   void didUpdateWidget(covariant CarViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.car.id != widget.car.id) {
-      _mesh = carMesh(widget.car);
+    if (oldWidget.car.id != widget.car.id ||
+        oldWidget.bodyColor != widget.bodyColor) {
+      _mesh = carMesh(widget.car, body: widget.bodyColor);
     }
   }
 

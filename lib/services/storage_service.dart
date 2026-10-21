@@ -10,6 +10,7 @@ class StorageService {
   static const String _sensitivityKey = 'steer_sensitivity';
   static const String _buttonSizeKey = 'button_size';
   static const String _leftHandedKey = 'left_handed';
+  static const String _carColorsKey = 'car_colors';
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -56,4 +57,26 @@ class StorageService {
 
   Future<void> saveLeftHanded(bool value) async =>
       (await _prefs).setBool(_leftHandedKey, value);
+
+  /// Car paint overrides, stored as "carId:argb" entries.
+  Future<Map<String, int>> loadCarColors() async {
+    final list = (await _prefs).getStringList(_carColorsKey) ?? <String>[];
+    final map = <String, int>{};
+    for (final entry in list) {
+      final i = entry.indexOf(':');
+      if (i <= 0) continue;
+      final value = int.tryParse(entry.substring(i + 1));
+      if (value != null) {
+        map[entry.substring(0, i)] = value;
+      }
+    }
+    return map;
+  }
+
+  Future<void> saveCarColors(Map<String, int> colors) async {
+    await (await _prefs).setStringList(
+      _carColorsKey,
+      colors.entries.map((e) => '${e.key}:${e.value}').toList(),
+    );
+  }
 }

@@ -3,8 +3,9 @@
 A 3D car drifting game built with Flutter + Flame, with a 3D software renderer
 written in Dart (no 3D engine plugins).
 
-The app opens straight into the garage: a slowly rotating 360-degree 3D view of
-your car, arrows to change car, a green PLAY button and settings at the top.
+The app is locked to **landscape** and opens straight into the garage: a slowly
+rotating 360-degree 3D view of your car, arrows to change car, a green PLAY
+button and settings at the top.
 
 ## Features
 
@@ -15,15 +16,18 @@ your car, arrows to change car, a green PLAY button and settings at the top.
 - 3D city: perspective chase camera, buildings, roads and an open drift plaza
 - Tyre smoke that streams from the rear wheels while drifting
 - 60-second drift run: lateral slide builds a combo multiplier (up to x20)
-- Control customisation in Settings: tilt steering, steering sensitivity,
-  button size, left-handed layout
-- Progress (coins, unlocked cars, selected car, settings) saved locally
+- Settings: **paint colour** for the selected car, plus tilt steering,
+  steering sensitivity, button size and left-handed layout
+- Progress (coins, unlocked cars, selected car, paint colours, settings) saved
+  locally
 
 ## 3D note
 
-The cars are **stylised low-poly 3D models** built from geometry in code — they
-match each car's colour and proportions, but they are not photorealistic
-(realistic car models are licensed assets). The rendering is a small
+The cars are **stylised low-poly 3D models** built from geometry in code. They
+have a hull, hood, trunk, slanted greenhouse, mirrors, lights, grille, wheels
+with rims and a ducktail spoiler, and they use each car's real colour and
+proportions — but they are not photorealistic (realistic car models are
+licensed assets that cannot be bundled here). The rendering is a small
 painter's-algorithm software renderer in `lib/game/three_d.dart`.
 
 ## Run it

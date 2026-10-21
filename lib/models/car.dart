@@ -160,3 +160,21 @@ const List<CarModel> kCars = <CarModel>[
     height: 1.41,
   ),
 ];
+
+/// Paint colours the player can apply to a car in Settings.
+const List<Color> kCarPalette = <Color>[
+  Color(0xFFE53935), // red
+  Color(0xFF1E88E5), // blue
+  Color(0xFF43A047), // green
+  Color(0xFFFDD835), // yellow
+  Color(0xFFFB8C00), // orange
+  Color(0xFF8E24AA), // purple
+  Color(0xFF00ACC1), // cyan
+  Color(0xFFEC407A), // pink
+  Color(0xFF2AA5A5), // teal
+  Color(0xFF6D4C41), // brown
+  Color(0xFFE0E0E0), // white
+  Color(0xFF9E9E9E), // silver
+  Color(0xFF424242), // grey
+  Color(0xFF141414), // black
+];

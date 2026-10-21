@@ -12,9 +12,10 @@ import '../models/car.dart';
 import 'results_screen.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, required this.car});
+  const GameScreen({super.key, required this.car, this.bodyColor});
 
   final CarModel car;
+  final Color? bodyColor;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -30,7 +31,11 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     final player = context.read<PlayerData>();
 
-    _game = DriftGame(car: widget.car, onGameOver: _onGameOver);
+    _game = DriftGame(
+      car: widget.car,
+      bodyColor: widget.bodyColor,
+      onGameOver: _onGameOver,
+    );
     _game.useTilt = player.useTilt;
     _game.sensitivity = player.steerSensitivity;
     _game.buttonSize = player.buttonSize;
@@ -59,7 +64,12 @@ class _GameScreenState extends State<GameScreen> {
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => ResultsScreen(score: score, coins: coins, car: widget.car),
+        builder: (_) => ResultsScreen(
+          score: score,
+          coins: coins,
+          car: widget.car,
+          bodyColor: widget.bodyColor,
+        ),
       ),
     );
   }
@@ -68,8 +78,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _accel?.cancel();
     _game.hud.dispose();
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // The app stays landscape everywhere, so don't reset the orientation here.
     super.dispose();
   }
 

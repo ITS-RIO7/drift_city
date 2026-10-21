@@ -9,11 +9,13 @@ class ResultsScreen extends StatelessWidget {
     required this.score,
     required this.coins,
     required this.car,
+    this.bodyColor,
   });
 
   final int score;
   final int coins;
   final CarModel car;
+  final Color? bodyColor;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +48,10 @@ class ResultsScreen extends StatelessWidget {
               child: FilledButton(
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => GameScreen(car: car)),
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          GameScreen(car: car, bodyColor: bodyColor),
+                    ),
                   );
                 },
                 child: const Text('DRIFT AGAIN'),

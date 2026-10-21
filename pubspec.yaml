@@ -1,7 +1,7 @@
 name: drift_city
 description: A 3D car drifting game set in a city, with a 360 garage to switch cars.
 publish_to: 'none'
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
