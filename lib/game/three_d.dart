@@ -35,7 +35,7 @@ class Mesh3D {
   }
 }
 
-/// Axis-aligned box between [min] and [max].
+/// Axis-aligned box between [min] and [max]. Faces wind outwards.
 Mesh3D box(Vector3 min, Vector3 max, Color color) {
   final x0 = min.x, y0 = min.y, z0 = min.z;
   final x1 = max.x, y1 = max.y, z1 = max.z;
@@ -56,14 +56,14 @@ Mesh3D box(Vector3 min, Vector3 max, Color color) {
     Face([v[1], v[0], v[3], v[2]], color), // -z
     Face([v[0], v[4], v[7], v[3]], color), // -x
     Face([v[5], v[1], v[2], v[6]], color), // +x
-    Face([v[3], v[7], v[6], v[2]], color), // top
-    Face([v[0], v[1], v[5], v[4]], color), // bottom
+    Face([v[3], v[7], v[6], v[2]], color), // +y (top)
+    Face([v[0], v[1], v[5], v[4]], color), // -y
   ]);
 }
 
-/// A stylised but detailed 3D car: hull, hood, trunk, a slanted greenhouse,
-/// mirrors, lights, a grille, wheels with rims and a ducktail spoiler.
-/// Forward points towards +Z. [body] overrides the car's paint colour.
+/// A stylised but detailed 3D car. Every face winds outwards so the renderer
+/// can cull back faces. Forward points towards +Z.
+/// [body] overrides the car's paint colour.
 Mesh3D carMesh(CarModel car, {Color? body}) {
   final l = car.length;
   final w = car.width;
@@ -72,160 +72,158 @@ Mesh3D carMesh(CarModel car, {Color? body}) {
   final hw = w / 2;
 
   final paint = body ?? car.color;
-  final glass = const Color(0xFF10141B);
-  final tyre = const Color(0xFF0D0D11);
-  final rim = const Color(0xFFB9BEC6);
+  final glass = const Color(0xFF1A2029);
+  final tyre = const Color(0xFF101014);
+  final rim = const Color(0xFFBEC3CA);
   final lightF = const Color(0xFFFFF6D0);
   final lightR = const Color(0xFFE23B2E);
-  final grille = const Color(0xFF15171C);
+  final grille = const Color(0xFF181A20);
 
-  final y0 = 0.30;
-  final yBelt = y0 + h * 0.44;
-  final yRoof = y0 + h * 0.98;
+  final y0 = 0.26; // sill
+  final yBelt = y0 + h * 0.56; // beltline
+  final yRoof = y0 + h * 0.96; // roof
 
   final faces = <Face>[];
 
-  // Lower hull.
-  faces.addAll(
-    box(Vector3(-hw, y0, -half), Vector3(hw, yBelt, half), paint).faces,
-  );
-  // Hood (front clip, slightly narrower and lower).
-  faces.addAll(
-    box(
-      Vector3(-hw * 0.95, y0, half * 0.5),
-      Vector3(hw * 0.95, yBelt - h * 0.05, half),
-      paint,
-    ).faces,
-  );
-  // Trunk (rear clip).
-  faces.addAll(
-    box(
-      Vector3(-hw * 0.95, y0, -half),
-      Vector3(hw * 0.95, yBelt - h * 0.04, -half * 0.55),
-      paint,
-    ).faces,
-  );
+  // Hull.
+  faces.addAll(box(Vector3(-hw, y0, -half), Vector3(hw, yBelt, half), paint).faces);
+  // Nose (lower and narrower).
+  faces.addAll(box(
+    Vector3(-hw * 0.96, y0, half * 0.40),
+    Vector3(hw * 0.96, yBelt - h * 0.12, half),
+    paint,
+  ).faces);
+  // Tail (lower and narrower).
+  faces.addAll(box(
+    Vector3(-hw * 0.96, y0, -half),
+    Vector3(hw * 0.96, yBelt - h * 0.08, -half * 0.46),
+    paint,
+  ).faces);
 
   // Greenhouse.
-  final cabFront = half * 0.26;
-  final cabBack = -half * 0.44;
-  final cabHw = hw * 0.87;
-  final roofHw = hw * 0.72;
-  final roofFront = half * 0.05;
-  final roofBack = -half * 0.34;
+  final cabFront = half * 0.34;
+  final cabBack = -half * 0.46;
+  final cabHw = hw * 0.93;
+  final roofHw = hw * 0.80;
+  final roofFront = half * 0.14;
+  final roofBack = -half * 0.36;
 
+  // Windshield.
   faces.add(Face([
     Vector3(-cabHw, yBelt, cabFront),
     Vector3(cabHw, yBelt, cabFront),
     Vector3(roofHw, yRoof, roofFront),
     Vector3(-roofHw, yRoof, roofFront),
-  ], glass)); // windshield
-
+  ], glass));
+  // Rear window.
   faces.add(Face([
     Vector3(cabHw, yBelt, cabBack),
     Vector3(-cabHw, yBelt, cabBack),
     Vector3(-roofHw, yRoof, roofBack),
     Vector3(roofHw, yRoof, roofBack),
-  ], glass)); // rear window
-
+  ], glass));
+  // Left side glass.
   faces.add(Face([
     Vector3(-cabHw, yBelt, cabBack),
     Vector3(-cabHw, yBelt, cabFront),
     Vector3(-roofHw, yRoof, roofFront),
     Vector3(-roofHw, yRoof, roofBack),
-  ], glass)); // left side glass
-
+  ], glass));
+  // Right side glass.
   faces.add(Face([
     Vector3(cabHw, yBelt, cabFront),
     Vector3(cabHw, yBelt, cabBack),
     Vector3(roofHw, yRoof, roofBack),
     Vector3(roofHw, yRoof, roofFront),
-  ], glass)); // right side glass
-
+  ], glass));
+  // Roof.
   faces.add(Face([
-    Vector3(-roofHw, yRoof, roofBack),
-    Vector3(roofHw, yRoof, roofBack),
-    Vector3(roofHw, yRoof, roofFront),
     Vector3(-roofHw, yRoof, roofFront),
-  ], paint)); // roof
+    Vector3(roofHw, yRoof, roofFront),
+    Vector3(roofHw, yRoof, roofBack),
+    Vector3(-roofHw, yRoof, roofBack),
+  ], paint));
 
   // Grille.
   faces.add(Face([
-    Vector3(-hw * 0.62, y0 + h * 0.06, half + 0.02),
-    Vector3(hw * 0.62, y0 + h * 0.06, half + 0.02),
-    Vector3(hw * 0.62, yBelt - h * 0.18, half + 0.02),
-    Vector3(-hw * 0.62, yBelt - h * 0.18, half + 0.02),
+    Vector3(-hw * 0.62, y0 + h * 0.08, half + 0.02),
+    Vector3(hw * 0.62, y0 + h * 0.08, half + 0.02),
+    Vector3(hw * 0.62, yBelt - h * 0.20, half + 0.02),
+    Vector3(-hw * 0.62, yBelt - h * 0.20, half + 0.02),
   ], grille));
 
   // Head lights.
   faces.add(Face([
-    Vector3(-hw * 0.88, yBelt - h * 0.30, half + 0.02),
-    Vector3(-hw * 0.36, yBelt - h * 0.30, half + 0.02),
-    Vector3(-hw * 0.36, yBelt - h * 0.14, half + 0.02),
-    Vector3(-hw * 0.88, yBelt - h * 0.14, half + 0.02),
+    Vector3(-hw * 0.90, yBelt - h * 0.32, half + 0.02),
+    Vector3(-hw * 0.36, yBelt - h * 0.32, half + 0.02),
+    Vector3(-hw * 0.36, yBelt - h * 0.16, half + 0.02),
+    Vector3(-hw * 0.90, yBelt - h * 0.16, half + 0.02),
   ], lightF));
   faces.add(Face([
-    Vector3(hw * 0.36, yBelt - h * 0.30, half + 0.02),
-    Vector3(hw * 0.88, yBelt - h * 0.30, half + 0.02),
-    Vector3(hw * 0.88, yBelt - h * 0.14, half + 0.02),
-    Vector3(hw * 0.36, yBelt - h * 0.14, half + 0.02),
+    Vector3(hw * 0.36, yBelt - h * 0.32, half + 0.02),
+    Vector3(hw * 0.90, yBelt - h * 0.32, half + 0.02),
+    Vector3(hw * 0.90, yBelt - h * 0.16, half + 0.02),
+    Vector3(hw * 0.36, yBelt - h * 0.16, half + 0.02),
   ], lightF));
 
-  // Tail lights.
+  // Tail lights (wound to face -Z).
   faces.add(Face([
-    Vector3(-hw * 0.86, yBelt - h * 0.30, -half - 0.02),
-    Vector3(-hw * 0.34, yBelt - h * 0.30, -half - 0.02),
+    Vector3(-hw * 0.34, yBelt - h * 0.32, -half - 0.02),
+    Vector3(-hw * 0.88, yBelt - h * 0.32, -half - 0.02),
+    Vector3(-hw * 0.88, yBelt - h * 0.16, -half - 0.02),
     Vector3(-hw * 0.34, yBelt - h * 0.16, -half - 0.02),
-    Vector3(-hw * 0.86, yBelt - h * 0.16, -half - 0.02),
   ], lightR));
   faces.add(Face([
-    Vector3(hw * 0.34, yBelt - h * 0.30, -half - 0.02),
-    Vector3(hw * 0.86, yBelt - h * 0.30, -half - 0.02),
-    Vector3(hw * 0.86, yBelt - h * 0.16, -half - 0.02),
+    Vector3(hw * 0.88, yBelt - h * 0.32, -half - 0.02),
+    Vector3(hw * 0.34, yBelt - h * 0.32, -half - 0.02),
     Vector3(hw * 0.34, yBelt - h * 0.16, -half - 0.02),
+    Vector3(hw * 0.88, yBelt - h * 0.16, -half - 0.02),
   ], lightR));
 
   // Mirrors.
   for (final s in <double>[-1, 1]) {
-    faces.addAll(
-      box(
-        Vector3(s * (hw + 0.02), yBelt - 0.02, cabFront - 0.16),
-        Vector3(s * (hw + 0.11), yBelt + 0.07, cabFront - 0.04),
-        paint,
-      ).faces,
-    );
+    faces.addAll(box(
+      Vector3(s * (hw - 0.04), yBelt + 0.01, cabFront - 0.20),
+      Vector3(s * (hw + 0.10), yBelt + 0.10, cabFront - 0.06),
+      paint,
+    ).faces);
   }
 
   // Ducktail spoiler.
-  faces.addAll(
-    box(
-      Vector3(-hw * 0.92, yBelt - h * 0.02, -half - 0.08),
-      Vector3(hw * 0.92, yBelt + 0.05, -half - 0.01),
-      paint,
-    ).faces,
-  );
+  faces.addAll(box(
+    Vector3(-hw * 0.94, yBelt - h * 0.02, -half - 0.09),
+    Vector3(hw * 0.94, yBelt + 0.06, -half - 0.01),
+    paint,
+  ).faces);
 
   // Wheels + rims.
-  final wz = half * 0.62;
+  final wz = half * 0.60;
   for (final sx in <double>[-1, 1]) {
     for (final sz in <double>[-1, 1]) {
-      final cx = sx * (hw + 0.02);
+      final cx = sx * (hw - 0.02);
       final cz = sz * wz;
-      faces.addAll(
-        box(
-          Vector3(cx - 0.13, 0.0, cz - 0.34),
-          Vector3(cx + 0.13, 0.62, cz + 0.34),
-          tyre,
-        ).faces,
-      );
-      // Rim on the outer face.
+      faces.addAll(box(
+        Vector3(cx - 0.13, 0.0, cz - 0.34),
+        Vector3(cx + 0.13, 0.68, cz + 0.34),
+        tyre,
+      ).faces);
+
       final outer = cx + sx * 0.135;
-      faces.add(Face([
-        Vector3(outer, 0.18, cz - 0.20),
-        Vector3(outer, 0.18, cz + 0.20),
-        Vector3(outer, 0.44, cz + 0.20),
-        Vector3(outer, 0.44, cz - 0.20),
-      ], rim));
+      if (sx > 0) {
+        faces.add(Face([
+          Vector3(outer, 0.20, cz - 0.20),
+          Vector3(outer, 0.20, cz + 0.20),
+          Vector3(outer, 0.48, cz + 0.20),
+          Vector3(outer, 0.48, cz - 0.20),
+        ], rim));
+      } else {
+        faces.add(Face([
+          Vector3(outer, 0.20, cz + 0.20),
+          Vector3(outer, 0.20, cz - 0.20),
+          Vector3(outer, 0.48, cz - 0.20),
+          Vector3(outer, 0.48, cz + 0.20),
+        ], rim));
+      }
     }
   }
 
@@ -233,6 +231,7 @@ Mesh3D carMesh(CarModel car, {Color? body}) {
 }
 
 /// A city block: walls, a roof slab and window bands on each side.
+/// Every face winds outwards.
 Mesh3D buildingMesh(
   double x,
   double z,
@@ -249,49 +248,50 @@ Mesh3D buildingMesh(
     box(Vector3(x - w / 2, 0, z - d / 2), Vector3(x + w / 2, h, z + d / 2), wall).faces,
   );
 
-  // Roof slab.
-  faces.add(
-    Face([
-      Vector3(x - w / 2 - 0.15, h + 0.05, z - d / 2 - 0.15),
-      Vector3(x + w / 2 + 0.15, h + 0.05, z - d / 2 - 0.15),
-      Vector3(x + w / 2 + 0.15, h + 0.05, z + d / 2 + 0.15),
-      Vector3(x - w / 2 - 0.15, h + 0.05, z + d / 2 + 0.15),
-    ], roof),
-  );
+  // Roof slab (faces +Y).
+  faces.add(Face([
+    Vector3(x - w / 2 - 0.15, h + 0.05, z + d / 2 + 0.15),
+    Vector3(x + w / 2 + 0.15, h + 0.05, z + d / 2 + 0.15),
+    Vector3(x + w / 2 + 0.15, h + 0.05, z - d / 2 - 0.15),
+    Vector3(x - w / 2 - 0.15, h + 0.05, z - d / 2 - 0.15),
+  ], roof));
 
-  // Window bands (one per wall), nudged outwards to sit on the surface.
   final y0 = h * 0.45;
   final y1 = h * 0.8;
   const o = 0.03;
-  final insetX = w * 0.15;
-  final insetZ = d * 0.15;
+  final ix = w * 0.15;
+  final iz = d * 0.15;
 
+  // -z wall (faces -Z).
   faces.add(Face([
-    Vector3(x - w / 2 + insetX, y0, z - d / 2 - o),
-    Vector3(x + w / 2 - insetX, y0, z - d / 2 - o),
-    Vector3(x + w / 2 - insetX, y1, z - d / 2 - o),
-    Vector3(x - w / 2 + insetX, y1, z - d / 2 - o),
+    Vector3(x + w / 2 - ix, y0, z - d / 2 - o),
+    Vector3(x - w / 2 + ix, y0, z - d / 2 - o),
+    Vector3(x - w / 2 + ix, y1, z - d / 2 - o),
+    Vector3(x + w / 2 - ix, y1, z - d / 2 - o),
   ], window));
 
+  // +z wall (faces +Z).
   faces.add(Face([
-    Vector3(x - w / 2 + insetX, y0, z + d / 2 + o),
-    Vector3(x + w / 2 - insetX, y0, z + d / 2 + o),
-    Vector3(x + w / 2 - insetX, y1, z + d / 2 + o),
-    Vector3(x - w / 2 + insetX, y1, z + d / 2 + o),
+    Vector3(x - w / 2 + ix, y0, z + d / 2 + o),
+    Vector3(x + w / 2 - ix, y0, z + d / 2 + o),
+    Vector3(x + w / 2 - ix, y1, z + d / 2 + o),
+    Vector3(x - w / 2 + ix, y1, z + d / 2 + o),
   ], window));
 
+  // -x wall (faces -X).
   faces.add(Face([
-    Vector3(x - w / 2 - o, y0, z - d / 2 + insetZ),
-    Vector3(x - w / 2 - o, y0, z + d / 2 - insetZ),
-    Vector3(x - w / 2 - o, y1, z + d / 2 - insetZ),
-    Vector3(x - w / 2 - o, y1, z - d / 2 + insetZ),
+    Vector3(x - w / 2 - o, y0, z - d / 2 + iz),
+    Vector3(x - w / 2 - o, y0, z + d / 2 - iz),
+    Vector3(x - w / 2 - o, y1, z + d / 2 - iz),
+    Vector3(x - w / 2 - o, y1, z - d / 2 + iz),
   ], window));
 
+  // +x wall (faces +X).
   faces.add(Face([
-    Vector3(x + w / 2 + o, y0, z - d / 2 + insetZ),
-    Vector3(x + w / 2 + o, y0, z + d / 2 - insetZ),
-    Vector3(x + w / 2 + o, y1, z + d / 2 - insetZ),
-    Vector3(x + w / 2 + o, y1, z - d / 2 + insetZ),
+    Vector3(x + w / 2 + o, y0, z + d / 2 - iz),
+    Vector3(x + w / 2 + o, y0, z - d / 2 + iz),
+    Vector3(x + w / 2 + o, y1, z - d / 2 + iz),
+    Vector3(x + w / 2 + o, y1, z + d / 2 - iz),
   ], window));
 
   return Mesh3D(faces);
@@ -375,10 +375,33 @@ List<Vector4> _clipNear(List<Vector4> poly) {
   return out;
 }
 
+Vector3 _centroid(List<Vector3> pts) {
+  var x = 0.0, y = 0.0, z = 0.0;
+  for (final p in pts) {
+    x += p.x;
+    y += p.y;
+    z += p.z;
+  }
+  final n = pts.length.toDouble();
+  return Vector3(x / n, y / n, z / n);
+}
+
 List<_Projected> _project(List<Mesh3D> meshes, Camera3D cam, Size size) {
   final items = <_Projected>[];
   for (final mesh in meshes) {
     for (final face in mesh.faces) {
+      // Back-face culling: skip faces that point away from the camera.
+      if (face.points.length >= 3) {
+        final a = face.points[0];
+        final b = face.points[1];
+        final c = face.points[2];
+        final n = (b - a).cross(c - a);
+        if (n.length2 > 1e-9) {
+          n.normalize();
+          if (n.dot(cam.position - _centroid(face.points)) < 0) continue;
+        }
+      }
+
       final clip = <Vector4>[];
       for (final p in face.points) {
         clip.add(cam.vp.transform(Vector4(p.x, p.y, p.z, 1.0)));

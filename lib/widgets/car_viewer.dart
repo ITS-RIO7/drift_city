@@ -88,9 +88,9 @@ class _CarPainter extends CustomPainter {
     final floor = Mesh3D(<Face>[
       Face([
         Vector3(-9, 0, -9),
-        Vector3(9, 0, -9),
-        Vector3(9, 0, 9),
         Vector3(-9, 0, 9),
+        Vector3(9, 0, 9),
+        Vector3(9, 0, -9),
       ], const Color(0xFF171A21)),
     ]);
 

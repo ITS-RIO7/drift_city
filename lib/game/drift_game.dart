@@ -173,18 +173,18 @@ class DriftGame extends FlameGame {
     const margin = 25.0;
     const bsize = 60.0;
 
-    const ground = Color(0xFF1B1D23);
-    const road = Color(0xFF3A3D45);
-    const line = Color(0x88FFFFFF);
+    const ground = Color(0xFF2A2E36);
+    const road = Color(0xFF474B55);
+    const line = Color(0xAAFFFFFF);
 
     final faces = <Face>[];
 
-    // Ground.
+    // Ground (wound to face +Y so back-face culling keeps it).
     faces.add(Face([
       vm.Vector3(0, 0, 0),
-      vm.Vector3(w, 0, 0),
-      vm.Vector3(w, 0, w),
       vm.Vector3(0, 0, w),
+      vm.Vector3(w, 0, w),
+      vm.Vector3(w, 0, 0),
     ], ground));
 
     for (var i = 0; i < 3; i++) {
@@ -192,29 +192,29 @@ class DriftGame extends FlameGame {
       // Vertical street.
       faces.add(Face([
         vm.Vector3(c - 20, 0.02, 0),
-        vm.Vector3(c + 20, 0.02, 0),
-        vm.Vector3(c + 20, 0.02, w),
         vm.Vector3(c - 20, 0.02, w),
+        vm.Vector3(c + 20, 0.02, w),
+        vm.Vector3(c + 20, 0.02, 0),
       ], road));
       faces.add(Face([
         vm.Vector3(c - 0.3, 0.04, 0),
-        vm.Vector3(c + 0.3, 0.04, 0),
-        vm.Vector3(c + 0.3, 0.04, w),
         vm.Vector3(c - 0.3, 0.04, w),
+        vm.Vector3(c + 0.3, 0.04, w),
+        vm.Vector3(c + 0.3, 0.04, 0),
       ], line));
 
       // Horizontal street.
       faces.add(Face([
         vm.Vector3(0, 0.02, c - 20),
-        vm.Vector3(w, 0.02, c - 20),
-        vm.Vector3(w, 0.02, c + 20),
         vm.Vector3(0, 0.02, c + 20),
+        vm.Vector3(w, 0.02, c + 20),
+        vm.Vector3(w, 0.02, c - 20),
       ], road));
       faces.add(Face([
         vm.Vector3(0, 0.04, c - 0.3),
-        vm.Vector3(w, 0.04, c - 0.3),
-        vm.Vector3(w, 0.04, c + 0.3),
         vm.Vector3(0, 0.04, c + 0.3),
+        vm.Vector3(w, 0.04, c + 0.3),
+        vm.Vector3(w, 0.04, c - 0.3),
       ], line));
     }
 
