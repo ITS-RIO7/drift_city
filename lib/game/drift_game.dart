@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 import '../models/car.dart';
 import 'three_d.dart';
@@ -39,7 +39,7 @@ class _Building {
 }
 
 class SmokeParticle {
-  Vector3 position;
+  vm.Vector3 position;
   double age = 0;
   double life;
   double size;
@@ -82,8 +82,8 @@ class DriftGame extends FlameGame {
   );
 
   // Car state (2D plane: x -> world X, y -> world Z).
-  Vector2 pos = Vector2(worldSize / 2, worldSize / 2);
-  Vector2 vel = Vector2.zero();
+  vm.Vector2 pos = vm.Vector2(worldSize / 2, worldSize / 2);
+  vm.Vector2 vel = vm.Vector2.zero();
   double angle = 0; // radians, 0 = facing +X
 
   // Input.
@@ -123,8 +123,8 @@ class DriftGame extends FlameGame {
     _buildCity();
     _groundMesh = _buildGround();
 
-    _camera.position = Vector3(pos.x, _camHeight, pos.y - _camDist);
-    _camera.target = Vector3(pos.x, 0.9, pos.y);
+    _camera.position = vm.Vector3(pos.x, _camHeight, pos.y - _camDist);
+    _camera.target = vm.Vector3(pos.x, 0.9, pos.y);
   }
 
   void _buildCity() {
@@ -178,40 +178,40 @@ class DriftGame extends FlameGame {
 
     // Ground.
     faces.add(Face([
-      Vector3(0, 0, 0),
-      Vector3(w, 0, 0),
-      Vector3(w, 0, w),
-      Vector3(0, 0, w),
+      vm.Vector3(0, 0, 0),
+      vm.Vector3(w, 0, 0),
+      vm.Vector3(w, 0, w),
+      vm.Vector3(0, 0, w),
     ], ground));
 
     for (var i = 0; i < 3; i++) {
       final c = margin + i * block + bsize + 20;
       // Vertical street.
       faces.add(Face([
-        Vector3(c - 20, 0.02, 0),
-        Vector3(c + 20, 0.02, 0),
-        Vector3(c + 20, 0.02, w),
-        Vector3(c - 20, 0.02, w),
+        vm.Vector3(c - 20, 0.02, 0),
+        vm.Vector3(c + 20, 0.02, 0),
+        vm.Vector3(c + 20, 0.02, w),
+        vm.Vector3(c - 20, 0.02, w),
       ], road));
       faces.add(Face([
-        Vector3(c - 0.3, 0.04, 0),
-        Vector3(c + 0.3, 0.04, 0),
-        Vector3(c + 0.3, 0.04, w),
-        Vector3(c - 0.3, 0.04, w),
+        vm.Vector3(c - 0.3, 0.04, 0),
+        vm.Vector3(c + 0.3, 0.04, 0),
+        vm.Vector3(c + 0.3, 0.04, w),
+        vm.Vector3(c - 0.3, 0.04, w),
       ], line));
 
       // Horizontal street.
       faces.add(Face([
-        Vector3(0, 0.02, c - 20),
-        Vector3(w, 0.02, c - 20),
-        Vector3(w, 0.02, c + 20),
-        Vector3(0, 0.02, c + 20),
+        vm.Vector3(0, 0.02, c - 20),
+        vm.Vector3(w, 0.02, c - 20),
+        vm.Vector3(w, 0.02, c + 20),
+        vm.Vector3(0, 0.02, c + 20),
       ], road));
       faces.add(Face([
-        Vector3(0, 0.04, c - 0.3),
-        Vector3(w, 0.04, c - 0.3),
-        Vector3(w, 0.04, c + 0.3),
-        Vector3(0, 0.04, c + 0.3),
+        vm.Vector3(0, 0.04, c - 0.3),
+        vm.Vector3(w, 0.04, c - 0.3),
+        vm.Vector3(w, 0.04, c + 0.3),
+        vm.Vector3(0, 0.04, c + 0.3),
       ], line));
     }
 
@@ -253,13 +253,13 @@ class DriftGame extends FlameGame {
   }
 
   bool _isDrifting() {
-    final lateral = vel.dot(Vector2(-math.sin(angle), math.cos(angle))).abs();
+    final lateral = vel.dot(vm.Vector2(-math.sin(angle), math.cos(angle))).abs();
     return vel.length > 80 && lateral > 40;
   }
 
   void _physics(double dt) {
-    final forward = Vector2(math.cos(angle), math.sin(angle));
-    final right = Vector2(-math.sin(angle), math.cos(angle));
+    final forward = vm.Vector2(math.cos(angle), math.sin(angle));
+    final right = vm.Vector2(-math.sin(angle), math.cos(angle));
 
     var vForward = vel.dot(forward);
     var vLateral = vel.dot(right);
@@ -326,7 +326,7 @@ class DriftGame extends FlameGame {
       combo += dt;
       multiplier = 1 + (combo / 1.5).floor();
       if (multiplier > 20) multiplier = 20;
-      final lateral = vel.dot(Vector2(-math.sin(angle), math.cos(angle))).abs();
+      final lateral = vel.dot(vm.Vector2(-math.sin(angle), math.cos(angle))).abs();
       score += lateral * dt * 0.6 * multiplier;
     } else {
       combo = math.max(0, combo - dt * 1.5);
@@ -335,13 +335,13 @@ class DriftGame extends FlameGame {
   }
 
   /// Local car-space point -> world position (uses the same yaw as the mesh).
-  Vector3 _localToWorld(double lx, double ly, double lz) {
+  vm.Vector3 _localToWorld(double lx, double ly, double lz) {
     final yaw = math.pi / 2 - angle;
     final c = math.cos(yaw);
     final s = math.sin(yaw);
     final wx = lx * c + lz * s;
     final wz = -lx * s + lz * c;
-    return Vector3(pos.x + wx, ly, pos.y + wz);
+    return vm.Vector3(pos.x + wx, ly, pos.y + wz);
   }
 
   void _updateSmoke(double dt) {
@@ -374,10 +374,10 @@ class DriftGame extends FlameGame {
   void _updateCamera(double dt) {
     final fx = math.cos(angle);
     final fz = math.sin(angle);
-    final desired = Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
+    final desired = vm.Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
     final t = clampD(dt * 4.5, 0.0, 1.0);
     _camera.position = _camera.position + (desired - _camera.position) * t;
-    _camera.target = Vector3(pos.x, 0.9, pos.y);
+    _camera.target = vm.Vector3(pos.x, 0.9, pos.y);
   }
 
   @override
@@ -397,7 +397,7 @@ class DriftGame extends FlameGame {
     for (final b in _buildings) {
       meshes.add(b.mesh);
     }
-    meshes.add(_carMesh.placed(Vector3(pos.x, 0, pos.y), math.pi / 2 - angle));
+    meshes.add(_carMesh.placed(vm.Vector3(pos.x, 0, pos.y), math.pi / 2 - angle));
     renderMeshes(canvas, s, _camera, meshes);
 
     _drawSmoke(canvas);
@@ -406,7 +406,7 @@ class DriftGame extends FlameGame {
   void _drawSmoke(Canvas canvas) {
     for (final p in _smoke) {
       final c = _camera.vp.transform(
-        Vector4(p.position.x, p.position.y, p.position.z, 1.0),
+        vm.Vector4(p.position.x, p.position.y, p.position.z, 1.0),
       );
       if (c.w <= 0.05) continue;
 
