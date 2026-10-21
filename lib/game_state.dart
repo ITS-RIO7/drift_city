@@ -11,8 +11,12 @@ class PlayerData extends ChangeNotifier {
   int coins = 0;
   Set<String> unlocked = <String>{};
   String selectedCarId = kCars.first.id;
+
   bool soundOn = true;
   bool useTilt = false;
+  double steerSensitivity = 1.0;
+  double buttonSize = 1.0;
+  bool leftHanded = false;
 
   Future<void> load() async {
     coins = await _storage.loadCoins();
@@ -30,6 +34,9 @@ class PlayerData extends ChangeNotifier {
 
     soundOn = await _storage.loadSound();
     useTilt = await _storage.loadTilt();
+    steerSensitivity = await _storage.loadSensitivity();
+    buttonSize = await _storage.loadButtonSize();
+    leftHanded = await _storage.loadLeftHanded();
     notifyListeners();
   }
 
@@ -75,6 +82,24 @@ class PlayerData extends ChangeNotifier {
   Future<void> setTilt(bool value) async {
     useTilt = value;
     await _storage.saveTilt(value);
+    notifyListeners();
+  }
+
+  Future<void> setSensitivity(double value) async {
+    steerSensitivity = value;
+    await _storage.saveSensitivity(value);
+    notifyListeners();
+  }
+
+  Future<void> setButtonSize(double value) async {
+    buttonSize = value;
+    await _storage.saveButtonSize(value);
+    notifyListeners();
+  }
+
+  Future<void> setLeftHanded(bool value) async {
+    leftHanded = value;
+    await _storage.saveLeftHanded(value);
     notifyListeners();
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 /// A car the player can drift in the garage.
 ///
 /// Stats are normalised 0..1 and drive the arcade physics in the game.
+/// [length], [width] and [height] are the body dimensions (world units) used
+/// to build the stylised 3D model.
 class CarModel {
   final String id;
   final String name;
@@ -12,6 +14,10 @@ class CarModel {
   final double drift; // how easily the rear steps out
   final int price; // coins to unlock, 0 = starter car
 
+  final double length;
+  final double width;
+  final double height;
+
   const CarModel({
     required this.id,
     required this.name,
@@ -20,6 +26,9 @@ class CarModel {
     required this.grip,
     required this.drift,
     required this.price,
+    this.length = 4.4,
+    this.width = 1.8,
+    this.height = 1.28,
   });
 
   // Physics values derived from the stats, used by the game engine.
@@ -38,6 +47,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.66,
     drift: 0.72,
     price: 0,
+    length: 4.31,
+    width: 1.82,
+    height: 1.28,
   ),
   CarModel(
     id: 'bmw_e36',
@@ -47,6 +59,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.62,
     drift: 0.80,
     price: 800,
+    length: 4.43,
+    width: 1.71,
+    height: 1.35,
   ),
   CarModel(
     id: 'bmw_e46',
@@ -56,6 +71,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.64,
     drift: 0.78,
     price: 1200,
+    length: 4.47,
+    width: 1.74,
+    height: 1.38,
   ),
   CarModel(
     id: 'toyota_gr86',
@@ -65,6 +83,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.74,
     drift: 0.70,
     price: 1600,
+    length: 4.26,
+    width: 1.78,
+    height: 1.31,
   ),
   CarModel(
     id: 'subaru_brz',
@@ -74,6 +95,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.76,
     drift: 0.66,
     price: 1600,
+    length: 4.24,
+    width: 1.78,
+    height: 1.29,
   ),
   CarModel(
     id: 'silvia_s13',
@@ -83,6 +107,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.58,
     drift: 0.86,
     price: 900,
+    length: 4.47,
+    width: 1.69,
+    height: 1.29,
   ),
   CarModel(
     id: 'silvia_s14',
@@ -92,6 +119,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.60,
     drift: 0.84,
     price: 1400,
+    length: 4.52,
+    width: 1.73,
+    height: 1.29,
   ),
   CarModel(
     id: 'silvia_s15',
@@ -101,6 +131,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.63,
     drift: 0.82,
     price: 2000,
+    length: 4.45,
+    width: 1.73,
+    height: 1.29,
   ),
   CarModel(
     id: 'mazda_rx7',
@@ -110,6 +143,9 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.65,
     drift: 0.83,
     price: 2400,
+    length: 4.28,
+    width: 1.76,
+    height: 1.23,
   ),
   CarModel(
     id: 'bmw_m2',
@@ -119,5 +155,8 @@ const List<CarModel> kCars = <CarModel>[
     grip: 0.72,
     drift: 0.76,
     price: 3000,
+    length: 4.46,
+    width: 1.85,
+    height: 1.41,
   ),
 ];

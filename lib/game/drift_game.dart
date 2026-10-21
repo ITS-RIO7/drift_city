@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
-import 'package:flame/components.dart' show Vector2;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 import '../models/car.dart';
+import 'three_d.dart';
 
 /// Small clamp helper (avoids num/double casts from [num.clamp]).
 double clampD(double value, double low, double high) {
@@ -30,19 +31,45 @@ class HudData {
   });
 }
 
-/// Top-down tilted (2.5D) drift game: drive around a small city, hold a
-/// slide to build a score multiplier before the timer runs out.
+class _Building {
+  final Mesh3D mesh;
+  final Rect footprint;
+
+  _Building(this.mesh, this.footprint);
+}
+
+class SmokeParticle {
+  Vector3 position;
+  double age = 0;
+  double life;
+  double size;
+
+  SmokeParticle(this.position, this.size) : life = 1.1 + math.Random().nextDouble() * 0.5;
+}
+
+/// 3D drift game: chase-camera view of a small city. Hold a slide to build
+/// a score multiplier before the timer runs out.
 class DriftGame extends FlameGame {
   DriftGame({required this.car, this.onGameOver});
 
   final CarModel car;
   final void Function(int score)? onGameOver;
 
-  static const double worldSize = 2400;
-  static const double carRadius = 16;
+  static const double worldSize = 400;
+  static const double carRadius = 2.4;
   static const double runSeconds = 60;
 
-  final List<Rect> buildings = <Rect>[];
+  static const double _camDist = 11.0;
+  static const double _camHeight = 5.2;
+
+  final List<_Building> _buildings = <_Building>[];
+  final List<SmokeParticle> _smoke = <SmokeParticle>[];
+  final math.Random _rng = math.Random();
+
+  late final Mesh3D _carMesh;
+  late final Mesh3D _groundMesh;
+
+  final Camera3D _camera = Camera3D();
 
   final ValueNotifier<HudData> hud = ValueNotifier<HudData>(
     const HudData(
@@ -54,10 +81,10 @@ class DriftGame extends FlameGame {
     ),
   );
 
-  // Car state.
+  // Car state (2D plane: x -> world X, y -> world Z).
   Vector2 pos = Vector2(worldSize / 2, worldSize / 2);
   Vector2 vel = Vector2.zero();
-  double angle = 0; // radians, 0 = facing right
+  double angle = 0; // radians, 0 = facing +X
 
   // Input.
   bool throttle = false;
@@ -65,6 +92,11 @@ class DriftGame extends FlameGame {
   double steerInput = 0; // -1..1
   bool useTilt = false;
   double tiltValue = 0; // -1..1
+  double sensitivity = 1.0;
+
+  // Control layout (set from player settings).
+  double buttonSize = 1.0;
+  bool leftHanded = false;
 
   // Scoring.
   double score = 0;
@@ -78,28 +110,112 @@ class DriftGame extends FlameGame {
   late double gripLat;
   late double steerRate;
 
+  double _smokeTimer = 0;
+
   @override
   Future<void> onLoad() async {
     maxSpeed = car.maxSpeed;
     enginePower = car.enginePower;
     gripLat = car.gripLat;
     steerRate = car.steerRate;
+
+    _carMesh = carMesh(car);
     _buildCity();
+    _groundMesh = _buildGround();
+
+    _camera.position = Vector3(pos.x, _camHeight, pos.y - _camDist);
+    _camera.target = Vector3(pos.x, 0.9, pos.y);
   }
 
   void _buildCity() {
-    const double block = 600;
-    const double margin = 150;
-    const double bsize = 380;
-    for (int gx = 0; gx < 4; gx++) {
-      for (int gy = 0; gy < 4; gy++) {
+    const double block = 100;
+    const double margin = 25;
+    const double bsize = 60;
+
+    const wallColors = <Color>[
+      Color(0xFF3A3F4B),
+      Color(0xFF454B58),
+      Color(0xFF2F3440),
+      Color(0xFF4A5162),
+    ];
+    const roofColors = <Color>[
+      Color(0xFF6B7285),
+      Color(0xFF7A8296),
+      Color(0xFF5C6377),
+    ];
+
+    for (var gx = 0; gx < 4; gx++) {
+      for (var gy = 0; gy < 4; gy++) {
         // Leave the central 2x2 blocks empty as an open drift plaza.
         if (gx >= 1 && gx <= 2 && gy >= 1 && gy <= 2) continue;
-        buildings.add(
-          Rect.fromLTWH(margin + gx * block, margin + gy * block, bsize, bsize),
-        );
+
+        final x = margin + gx * block + bsize / 2;
+        final z = margin + gy * block + bsize / 2;
+        final h = 22.0 + ((gx * 7 + gy * 13) % 5) * 9.0;
+
+        final wall = wallColors[(gx + gy * 4) % wallColors.length];
+        final roof = roofColors[(gx * 2 + gy) % roofColors.length];
+
+        _buildings.add(_Building(
+          buildingMesh(x, z, bsize, bsize, h, wall, roof, const Color(0xFFFFE08A)),
+          Rect.fromLTWH(x - bsize / 2, z - bsize / 2, bsize, bsize),
+        ));
       }
     }
+  }
+
+  Mesh3D _buildGround() {
+    const w = worldSize;
+    const block = 100.0;
+    const margin = 25.0;
+    const bsize = 60.0;
+
+    const ground = Color(0xFF1B1D23);
+    const road = Color(0xFF3A3D45);
+    const line = Color(0x88FFFFFF);
+
+    final faces = <Face>[];
+
+    // Ground.
+    faces.add(Face([
+      Vector3(0, 0, 0),
+      Vector3(w, 0, 0),
+      Vector3(w, 0, w),
+      Vector3(0, 0, w),
+    ], ground));
+
+    for (var i = 0; i < 3; i++) {
+      final c = margin + i * block + bsize + 20;
+      // Vertical street.
+      faces.add(Face([
+        Vector3(c - 20, 0.02, 0),
+        Vector3(c + 20, 0.02, 0),
+        Vector3(c + 20, 0.02, w),
+        Vector3(c - 20, 0.02, w),
+      ], road));
+      faces.add(Face([
+        Vector3(c - 0.3, 0.04, 0),
+        Vector3(c + 0.3, 0.04, 0),
+        Vector3(c + 0.3, 0.04, w),
+        Vector3(c - 0.3, 0.04, w),
+      ], line));
+
+      // Horizontal street.
+      faces.add(Face([
+        Vector3(0, 0.02, c - 20),
+        Vector3(w, 0.02, c - 20),
+        Vector3(w, 0.02, c + 20),
+        Vector3(0, 0.02, c + 20),
+      ], road));
+      faces.add(Face([
+        Vector3(0, 0.04, c - 0.3),
+        Vector3(w, 0.04, c - 0.3),
+        Vector3(w, 0.04, c + 0.3),
+        Vector3(0, 0.04, c + 0.3),
+      ], line));
+    }
+
+    return Mesh3D(faces);
   }
 
   @override
@@ -124,6 +240,8 @@ class DriftGame extends FlameGame {
 
     _physics(dt);
     _score(dt);
+    _updateSmoke(dt);
+    _updateCamera(dt);
 
     hud.value = HudData(
       score: score,
@@ -143,8 +261,8 @@ class DriftGame extends FlameGame {
     final forward = Vector2(math.cos(angle), math.sin(angle));
     final right = Vector2(-math.sin(angle), math.cos(angle));
 
-    double vForward = vel.dot(forward);
-    double vLateral = vel.dot(right);
+    var vForward = vel.dot(forward);
+    var vLateral = vel.dot(right);
 
     if (throttle) vForward += enginePower * dt;
     if (brake) {
@@ -155,18 +273,14 @@ class DriftGame extends FlameGame {
       }
     }
 
-    // Rolling drag.
     vForward -= vForward * 0.7 * dt;
     vForward = clampD(vForward, -maxSpeed * 0.4, maxSpeed);
-
-    // Lateral grip: the lower gripLat, the longer the slide lasts.
     vLateral *= math.exp(-gripLat * 3.0 * dt);
 
-    // Steering only bites when the car is actually moving.
     final steer = useTilt ? tiltValue : steerInput;
     final speedFactor = clampD(vForward.abs() / maxSpeed, 0.0, 1.0);
     final direction = vForward >= 0 ? 1.0 : -1.0;
-    angle += steer * steerRate * speedFactor * direction * dt;
+    angle += steer * steerRate * sensitivity * speedFactor * direction * dt;
 
     vel = forward * vForward + right * vLateral;
     pos += vel * dt;
@@ -177,9 +291,10 @@ class DriftGame extends FlameGame {
     pos.x = clampD(pos.x, carRadius, worldSize - carRadius);
     pos.y = clampD(pos.y, carRadius, worldSize - carRadius);
 
-    for (final building in buildings) {
-      final nearestX = clampD(pos.x, building.left, building.right);
-      final nearestY = clampD(pos.y, building.top, building.bottom);
+    for (final building in _buildings) {
+      final b = building.footprint;
+      final nearestX = clampD(pos.x, b.left, b.right);
+      final nearestY = clampD(pos.y, b.top, b.bottom);
       final dx = pos.x - nearestX;
       final dy = pos.y - nearestY;
       final dist = math.sqrt(dx * dx + dy * dy);
@@ -219,132 +334,92 @@ class DriftGame extends FlameGame {
     }
   }
 
+  /// Local car-space point -> world position (uses the same yaw as the mesh).
+  Vector3 _localToWorld(double lx, double ly, double lz) {
+    final yaw = math.pi / 2 - angle;
+    final c = math.cos(yaw);
+    final s = math.sin(yaw);
+    final wx = lx * c + lz * s;
+    final wz = -lx * s + lz * c;
+    return Vector3(pos.x + wx, ly, pos.y + wz);
+  }
+
+  void _updateSmoke(double dt) {
+    if (_isDrifting() && vel.length > 90) {
+      _smokeTimer -= dt;
+      if (_smokeTimer <= 0) {
+        _smokeTimer = 0.035;
+        final half = car.length / 2;
+        final hw = car.width / 2;
+        for (final sx in <double>[-1, 1]) {
+          _smoke.add(SmokeParticle(
+            _localToWorld(sx * hw * 0.95, 0.35, -half * 0.65),
+            1.0 + _rng.nextDouble() * 0.4,
+          ));
+        }
+      }
+    }
+
+    for (final p in _smoke) {
+      p.age += dt;
+      p.position.y += dt * 0.9;
+      p.size += dt * 2.2;
+    }
+    _smoke.removeWhere((p) => p.age >= p.life);
+    if (_smoke.length > 160) {
+      _smoke.removeRange(0, _smoke.length - 160);
+    }
+  }
+
+  void _updateCamera(double dt) {
+    final fx = math.cos(angle);
+    final fz = math.sin(angle);
+    final desired = Vector3(pos.x - fx * _camDist, _camHeight, pos.y - fz * _camDist);
+    final t = clampD(dt * 4.5, 0.0, 1.0);
+    _camera.position = _camera.position + (desired - _camera.position) * t;
+    _camera.target = Vector3(pos.x, 0.9, pos.y);
+  }
+
   @override
   void render(Canvas canvas) {
-    final offset = Offset(size.x / 2 - pos.x, size.y / 2 - pos.y);
-    canvas.save();
-    canvas.translate(offset.dx, offset.dy);
-
-    _drawWorld(canvas);
-    for (final building in buildings) {
-      _drawBuilding(canvas, building);
-    }
-    _drawCar(canvas);
-
-    canvas.restore();
-  }
-
-  void _drawWorld(Canvas canvas) {
+    final s = Size(size.x, size.y);
     canvas.drawRect(
-      const Rect.fromLTWH(0, 0, worldSize, worldSize),
-      Paint()..color = const Color(0xFF23232A),
+      Rect.fromLTWH(0, 0, s.width, s.height),
+      Paint()..color = const Color(0xFF0C0E14),
     );
 
-    final road = Paint()..color = const Color(0xFF37373F);
-    const double block = 600;
-    const double margin = 150;
-    const double bsize = 380;
-    for (int i = 0; i < 4; i++) {
-      final center = margin + i * block + bsize / 2;
-      canvas.drawRect(
-        Rect.fromLTWH(center - 110, 0, 220, worldSize),
-        road,
+    final aspect = s.height <= 0 ? 1.0 : s.width / s.height;
+    _camera.update(aspect);
+
+    renderFlat(canvas, s, _camera, <Mesh3D>[_groundMesh]);
+
+    final meshes = <Mesh3D>[];
+    for (final b in _buildings) {
+      meshes.add(b.mesh);
+    }
+    meshes.add(_carMesh.placed(Vector3(pos.x, 0, pos.y), math.pi / 2 - angle));
+    renderMeshes(canvas, s, _camera, meshes);
+
+    _drawSmoke(canvas);
+  }
+
+  void _drawSmoke(Canvas canvas) {
+    for (final p in _smoke) {
+      final c = _camera.vp.transform(
+        Vector4(p.position.x, p.position.y, p.position.z, 1.0),
       );
-      canvas.drawRect(
-        Rect.fromLTWH(0, center - 110, worldSize, 220),
-        road,
+      if (c.w <= 0.05) continue;
+
+      final sx = ((c.x / c.w) * 0.5 + 0.5) * size.x;
+      final sy = (1.0 - ((c.y / c.w) * 0.5 + 0.5)) * size.y;
+      final r = clampD((p.size * size.y * 0.5) / c.w, 0.0, 400.0);
+      final a = clampD(1.0 - p.age / p.life, 0.0, 1.0);
+
+      canvas.drawCircle(
+        Offset(sx, sy),
+        r,
+        Paint()..color = Colors.white.withValues(alpha: a * 0.45),
       );
     }
-
-    final dash = Paint()..color = const Color(0x66FFFFFF);
-    for (int i = 0; i < 4; i++) {
-      final center = margin + i * block + bsize / 2;
-      for (double y = 0; y < worldSize; y += 60) {
-        canvas.drawRect(Rect.fromLTWH(center - 3, y, 6, 30), dash);
-      }
-      for (double x = 0; x < worldSize; x += 60) {
-        canvas.drawRect(Rect.fromLTWH(x, center - 3, 30, 6), dash);
-      }
-    }
-
-    final wall = Paint()..color = const Color(0xFF4A4A55);
-    const double t = 20;
-    canvas.drawRect(const Rect.fromLTWH(0, 0, worldSize, t), wall);
-    canvas.drawRect(const Rect.fromLTWH(0, worldSize - t, worldSize, t), wall);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, t, worldSize), wall);
-    canvas.drawRect(const Rect.fromLTWH(worldSize - t, 0, t, worldSize), wall);
-  }
-
-  void _drawBuilding(Canvas canvas, Rect base) {
-    const double height = 70;
-
-    canvas.drawRect(
-      Rect.fromLTWH(base.left + 8, base.top + 8, base.width, base.height),
-      Paint()..color = const Color(0x55000000),
-    );
-
-    final roof = Rect.fromLTWH(base.left, base.top - height, base.width, base.height);
-    final front = Rect.fromLTWH(base.left, base.bottom - height, base.width, height);
-
-    canvas.drawRect(front, Paint()..color = const Color(0xFF3E3E48));
-    canvas.drawRect(roof, Paint()..color = const Color(0xFF6B6B78));
-
-    final window = Paint()..color = const Color(0xFFFFE08A);
-    for (double x = front.left + 24; x < front.right - 24; x += 56) {
-      for (double y = front.top + 14; y < front.bottom - 14; y += 30) {
-        canvas.drawRect(Rect.fromLTWH(x, y, 20, 16), window);
-      }
-    }
-  }
-
-  void _drawCar(Canvas canvas) {
-    canvas.save();
-    canvas.translate(pos.x, pos.y);
-    canvas.rotate(angle);
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: const Offset(3, 3),
-          width: 40,
-          height: 24,
-        ),
-        const Radius.circular(7),
-      ),
-      Paint()..color = const Color(0x66000000),
-    );
-
-    final wheel = Paint()..color = const Color(0xFF15151A);
-    for (final wx in <double>[10, -10]) {
-      for (final wy in <double>[12, -12]) {
-        canvas.drawRect(
-          Rect.fromCenter(center: Offset(wx, wy), width: 12, height: 7),
-          wheel,
-        );
-      }
-    }
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset.zero, width: 40, height: 24),
-        const Radius.circular(7),
-      ),
-      Paint()..color = car.color,
-    );
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: const Offset(5, 0), width: 12, height: 18),
-        const Radius.circular(3),
-      ),
-      Paint()..color = const Color(0xFF1B1F27),
-    );
-
-    canvas.drawRect(
-      Rect.fromCenter(center: const Offset(19, 0), width: 3, height: 14),
-      Paint()..color = Colors.white70,
-    );
-
-    canvas.restore();
   }
 }

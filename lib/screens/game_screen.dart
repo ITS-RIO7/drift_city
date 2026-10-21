@@ -29,8 +29,12 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     final player = context.read<PlayerData>();
+
     _game = DriftGame(car: widget.car, onGameOver: _onGameOver);
     _game.useTilt = player.useTilt;
+    _game.sensitivity = player.steerSensitivity;
+    _game.buttonSize = player.buttonSize;
+    _game.leftHanded = player.leftHanded;
 
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.landscapeLeft,
@@ -180,53 +184,62 @@ class _ControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = game.buttonSize;
+
+    final steering = Row(
+      children: [
+        if (!game.useTilt) ...[
+          _HoldButton(
+            icon: Icons.chevron_left,
+            size: size,
+            onDown: () => game.steerInput = -1,
+            onUp: () => game.steerInput = 0,
+          ),
+          const SizedBox(width: 12),
+          _HoldButton(
+            icon: Icons.chevron_right,
+            size: size,
+            onDown: () => game.steerInput = 1,
+            onUp: () => game.steerInput = 0,
+          ),
+        ] else
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Text(
+              'TILT STEERING ON',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+
+    final pedals = Row(
+      children: [
+        _HoldButton(
+          label: 'BRAKE',
+          size: size,
+          onDown: () => game.brake = true,
+          onUp: () => game.brake = false,
+        ),
+        const SizedBox(width: 12),
+        _HoldButton(
+          label: 'GAS',
+          size: size,
+          onDown: () => game.throttle = true,
+          onUp: () => game.throttle = false,
+        ),
+      ],
+    );
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                if (!game.useTilt) ...[
-                  _HoldButton(
-                    icon: Icons.chevron_left,
-                    onDown: () => game.steerInput = -1,
-                    onUp: () => game.steerInput = 0,
-                  ),
-                  const SizedBox(width: 12),
-                  _HoldButton(
-                    icon: Icons.chevron_right,
-                    onDown: () => game.steerInput = 1,
-                    onUp: () => game.steerInput = 0,
-                  ),
-                ] else
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8),
-                    child: Text(
-                      'TILT STEERING ON',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ),
-              ],
-            ),
-            Row(
-              children: [
-                _HoldButton(
-                  label: 'BRAKE',
-                  onDown: () => game.brake = true,
-                  onUp: () => game.brake = false,
-                ),
-                const SizedBox(width: 12),
-                _HoldButton(
-                  label: 'GAS',
-                  onDown: () => game.throttle = true,
-                  onUp: () => game.throttle = false,
-                ),
-              ],
-            ),
-          ],
+          children: game.leftHanded
+              ? [pedals, steering]
+              : [steering, pedals],
         ),
       ),
     );
@@ -237,24 +250,27 @@ class _HoldButton extends StatelessWidget {
   const _HoldButton({
     this.icon,
     this.label,
+    required this.size,
     required this.onDown,
     required this.onUp,
   });
 
   final IconData? icon;
   final String? label;
+  final double size;
   final VoidCallback onDown;
   final VoidCallback onUp;
 
   @override
   Widget build(BuildContext context) {
+    final d = 72.0 * size;
     return GestureDetector(
       onTapDown: (_) => onDown(),
       onTapUp: (_) => onUp(),
       onTapCancel: onUp,
       child: Container(
-        width: 72,
-        height: 72,
+        width: d,
+        height: d,
         decoration: BoxDecoration(
           color: Colors.white24,
           shape: BoxShape.circle,
@@ -262,12 +278,13 @@ class _HoldButton extends StatelessWidget {
         ),
         child: Center(
           child: icon != null
-              ? Icon(icon, color: Colors.white, size: 36)
+              ? Icon(icon, color: Colors.white, size: d * 0.5)
               : Text(
                   label ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14 * size,
                   ),
                 ),
         ),

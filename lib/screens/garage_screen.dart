@@ -3,169 +3,284 @@ import 'package:provider/provider.dart';
 
 import '../game_state.dart';
 import '../models/car.dart';
+import '../widgets/car_viewer.dart';
+import 'game_screen.dart';
+import 'settings_screen.dart';
 
-class GarageScreen extends StatelessWidget {
+/// The landing screen: a 360-degree 3D car with arrows to change car,
+/// a green PLAY button and settings at the top.
+class GarageScreen extends StatefulWidget {
   const GarageScreen({super.key});
+
+  @override
+  State<GarageScreen> createState() => _GarageScreenState();
+}
+
+class _GarageScreenState extends State<GarageScreen> {
+  int _index = 0;
+  bool _initialised = false;
+
+  void _move(int delta, PlayerData player) {
+    setState(() {
+      _index = (_index + delta + kCars.length) % kCars.length;
+    });
+    final car = kCars[_index];
+    if (player.isUnlocked(car.id)) {
+      player.selectCar(car.id);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerData>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Garage'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
-                const SizedBox(width: 6),
-                Text('${player.coins}'),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: GridView.count(
-        crossAxisCount: 2,
-        padding: const EdgeInsets.all(12),
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.82,
-        children: kCars
-            .map((car) => _CarTile(car: car, player: player))
-            .toList(),
-      ),
-    );
-  }
-}
+    if (!_initialised) {
+      final found = kCars.indexWhere((c) => c.id == player.selectedCarId);
+      _index = found < 0 ? 0 : found;
+      _initialised = true;
+    }
 
-class _CarTile extends StatelessWidget {
-  const _CarTile({required this.car, required this.player});
-
-  final CarModel car;
-  final PlayerData player;
-
-  @override
-  Widget build(BuildContext context) {
+    final car = kCars[_index];
     final unlocked = player.isUnlocked(car.id);
-    final selected = player.selectedCarId == car.id;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: car.color,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    car.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _StatBar(label: 'SPD', value: car.speed),
-            _StatBar(label: 'GRIP', value: car.grip),
-            _StatBar(label: 'DRIFT', value: car.drift),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: _actionButton(context, unlocked, selected),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _actionButton(BuildContext context, bool unlocked, bool selected) {
-    if (selected) {
-      return const FilledButton(onPressed: null, child: Text('SELECTED'));
-    }
-    if (unlocked) {
-      return FilledButton(
-        onPressed: () => context.read<PlayerData>().selectCar(car.id),
-        child: const Text('SELECT'),
-      );
-    }
-
-    final canAfford = player.coins >= car.price;
-    return FilledButton.tonal(
-      onPressed: () async {
-        final ok = await context.read<PlayerData>().unlockCar(car);
-        if (!ok && context.mounted) {
-          final missing = car.price - player.coins;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Need $missing more coins')),
-          );
-        }
-      },
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B0D12),
+      body: Stack(
         children: [
-          Icon(canAfford ? Icons.lock_open : Icons.lock, size: 14),
-          const SizedBox(width: 6),
-          Text(canAfford ? 'UNLOCK ${car.price}' : '${car.price}'),
-        ],
-      ),
-    );
-  }
-}
+          Positioned.fill(child: CarViewer(car: car)),
 
-class _StatBar extends StatelessWidget {
-  const _StatBar({required this.label, required this.value});
-
-  final String label;
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 46,
-            child: Text(label, style: const TextStyle(fontSize: 11)),
+          // Top bar: coins + settings.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _Coins(coins: player.coins),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                    icon: const Icon(Icons.settings, color: Colors.white, size: 30),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: value,
-                minHeight: 6,
-                backgroundColor: Colors.white12,
+
+          // Arrows to change car.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _ArrowButton(
+              icon: Icons.chevron_left,
+              onTap: () => _move(-1, player),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _ArrowButton(
+              icon: Icons.chevron_right,
+              onTap: () => _move(1, player),
+            ),
+          ),
+
+          // Car name, stats and action.
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      car.name,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _StatRow(car: car),
+                    const SizedBox(height: 18),
+                    _action(context, player, car, unlocked),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _action(
+    BuildContext context,
+    PlayerData player,
+    CarModel car,
+    bool unlocked,
+  ) {
+    if (unlocked) {
+      return FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF2ECC40),
+          foregroundColor: Colors.black,
+          minimumSize: const Size(210, 58),
+          textStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+        ),
+        onPressed: () async {
+          await player.selectCar(car.id);
+          if (!context.mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => GameScreen(car: car)),
+          );
+        },
+        icon: const Icon(Icons.play_arrow, size: 30),
+        label: const Text('PLAY'),
+      );
+    }
+
+    final canAfford = player.coins >= car.price;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock, size: 16, color: Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              '${car.price} coins',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: canAfford
+                ? const Color(0xFFF2C400)
+                : Colors.white24,
+            foregroundColor: Colors.black,
+            minimumSize: const Size(210, 58),
+            textStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+          onPressed: () async {
+            final ok = await player.unlockCar(car);
+            if (!ok && context.mounted) {
+              final missing = car.price - player.coins;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Need $missing more coins')),
+              );
+            }
+          },
+          icon: const Icon(Icons.lock_open, size: 22),
+          label: Text(canAfford ? 'UNLOCK' : 'LOCKED'),
+        ),
+      ],
+    );
+  }
+}
+
+class _Coins extends StatelessWidget {
+  const _Coins({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black38,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+          const SizedBox(width: 6),
+          Text('$coins', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArrowButton extends StatelessWidget {
+  const _ArrowButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.white12,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white30),
+          ),
+          child: Icon(icon, color: Colors.white, size: 34),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.car});
+
+  final CarModel car;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _stat('SPD', car.speed),
+        const SizedBox(width: 14),
+        _stat('GRIP', car.grip),
+        const SizedBox(width: 14),
+        _stat('DRIFT', car.drift),
+      ],
+    );
+  }
+
+  Widget _stat(String label, double value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.white54, letterSpacing: 1),
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            width: 62,
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 6,
+              backgroundColor: Colors.white12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

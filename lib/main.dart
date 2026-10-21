@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'game_state.dart';
-import 'screens/home_screen.dart';
+import 'screens/garage_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
           colorSchemeSeed: const Color(0xFFE53935),
           brightness: Brightness.dark,
         ),
-        home: const HomeScreen(),
+        home: const GarageScreen(),
       ),
     );
   }

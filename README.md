@@ -1,19 +1,30 @@
 # DriftCity
 
-A 2.5D (top-down, tilted) car drifting game built with Flutter + Flame.
+A 3D car drifting game built with Flutter + Flame, with a 3D software renderer
+written in Dart (no 3D engine plugins).
 
-Drive a JDM / BMW drift car around a small city, hold a slide to build a
-score multiplier, and spend the coins you earn on new cars in the garage.
+The app opens straight into the garage: a slowly rotating 360-degree 3D view of
+your car, arrows to change car, a green PLAY button and settings at the top.
 
 ## Features
 
 - 10 cars: Nissan 350Z, BMW E36, BMW E46, Toyota GR86, Subaru BRZ,
   Nissan Silvia S13 / S14 / S15, Mazda RX-7, BMW M2 Competition
-- Garage: switch cars, view stats (Speed / Grip / Drift), unlock with coins
+- Garage landing screen: 360-degree rotating 3D car, side arrows to change
+  car, green PLAY button, coins + settings in the top bar
+- 3D city: perspective chase camera, buildings, roads and an open drift plaza
+- Tyre smoke that streams from the rear wheels while drifting
 - 60-second drift run: lateral slide builds a combo multiplier (up to x20)
-- City map with roads, buildings and an open central drift plaza
-- On-screen controls, plus optional tilt steering
+- Control customisation in Settings: tilt steering, steering sensitivity,
+  button size, left-handed layout
 - Progress (coins, unlocked cars, selected car, settings) saved locally
+
+## 3D note
+
+The cars are **stylised low-poly 3D models** built from geometry in code — they
+match each car's colour and proportions, but they are not photorealistic
+(realistic car models are licensed assets). The rendering is a small
+painter's-algorithm software renderer in `lib/game/three_d.dart`.
 
 ## Run it
 

@@ -1,12 +1,15 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Thin wrapper around SharedPreferences for local progress.
+/// Thin wrapper around SharedPreferences for local progress + settings.
 class StorageService {
   static const String _coinsKey = 'coins';
   static const String _unlockedKey = 'unlocked_cars';
   static const String _selectedKey = 'selected_car';
   static const String _soundKey = 'sound_on';
   static const String _tiltKey = 'use_tilt';
+  static const String _sensitivityKey = 'steer_sensitivity';
+  static const String _buttonSizeKey = 'button_size';
+  static const String _leftHandedKey = 'left_handed';
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -35,4 +38,22 @@ class StorageService {
 
   Future<void> saveTilt(bool value) async =>
       (await _prefs).setBool(_tiltKey, value);
+
+  Future<double> loadSensitivity() async =>
+      (await _prefs).getDouble(_sensitivityKey) ?? 1.0;
+
+  Future<void> saveSensitivity(double value) async =>
+      (await _prefs).setDouble(_sensitivityKey, value);
+
+  Future<double> loadButtonSize() async =>
+      (await _prefs).getDouble(_buttonSizeKey) ?? 1.0;
+
+  Future<void> saveButtonSize(double value) async =>
+      (await _prefs).setDouble(_buttonSizeKey, value);
+
+  Future<bool> loadLeftHanded() async =>
+      (await _prefs).getBool(_leftHandedKey) ?? false;
+
+  Future<void> saveLeftHanded(bool value) async =>
+      (await _prefs).setBool(_leftHandedKey, value);
 }
