@@ -9,8 +9,7 @@ button and settings at the top.
 
 ## Features
 
-- 10 cars: Nissan 350Z, BMW E36, BMW E46, Toyota GR86, Subaru BRZ,
-  Nissan Silvia S13 / S14 / S15, Mazda RX-7, BMW M2 Competition
+- 2 cars, both free: BMW M8 and Ford Mustang
 - Garage landing screen: 360-degree rotating 3D car, side arrows to change
   car, green PLAY button, coins + settings in the top bar
 - 3D city: perspective chase camera, buildings, roads and an open drift plaza
@@ -60,6 +59,8 @@ when the workflow is run manually or a `v*` tag is pushed.
 
 ## Changelog
 
+- v0.4.0: rebuilt the car model (tapered body with shoulders); only two cars now,
+  BMW M8 and Ford Mustang, both free.
 - v0.3.5: chase camera clamped so it can never pass through the car; the car
   slides along walls instead of bouncing backwards.
 - v0.3.4: camera moved right behind the car; slower acceleration and lower top speed.

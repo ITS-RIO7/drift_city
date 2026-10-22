@@ -24,6 +24,8 @@ class PlayerData extends ChangeNotifier {
     coins = await _storage.loadCoins();
 
     unlocked = (await _storage.loadUnlocked()).toSet();
+    // Every free car is always available.
+    unlocked.addAll(kCars.where((c) => c.price == 0).map((c) => c.id));
     if (unlocked.isEmpty) {
       unlocked = <String>{kCars.first.id};
     }
