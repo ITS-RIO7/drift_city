@@ -28,6 +28,16 @@ jobs:
           channel: stable
           cache: true
 
+      # Android refuses to install an APK whose signature differs from the
+      # installed one. A fresh CI runner generates a fresh debug keystore every
+      # run, so every build would be signed differently and could never update
+      # an existing install. Cache the keystore so the signature stays stable.
+      - name: Restore Android debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
       # Guard against a scaffold that has only Dart files. Build the android/
       # folder inside a throwaway project and copy just that folder in, so our
       # own lib/ and pubspec.yaml can never be overwritten.

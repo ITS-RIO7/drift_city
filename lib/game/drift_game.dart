@@ -440,12 +440,19 @@ class DriftGame extends FlameGame {
 
     renderFlat(canvas, s, _camera, <Mesh3D>[_groundMesh]);
 
-    final meshes = <Mesh3D>[];
+    // Buildings first, then the car in its own pass, so the car's faces are
+    // only ever sorted against each other and are always drawn on top.
+    final buildings = <Mesh3D>[];
     for (final b in _buildings) {
-      meshes.add(b.mesh);
+      buildings.add(b.mesh);
     }
-    meshes.add(_carMesh.placed(vm.Vector3(pos.x, 0, pos.y), math.pi / 2 - angle));
-    renderMeshes(canvas, s, _camera, meshes);
+    renderMeshes(canvas, s, _camera, buildings);
+    renderMeshes(
+      canvas,
+      s,
+      _camera,
+      <Mesh3D>[_carMesh.placed(vm.Vector3(pos.x, 0, pos.y), math.pi / 2 - angle)],
+    );
 
     _drawSmoke(canvas);
   }
