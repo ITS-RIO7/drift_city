@@ -273,15 +273,18 @@ class DriftGame extends FlameGame {
     if (throttle) vForward += enginePower * dt;
     if (brake) {
       if (vForward > 10) {
+        // Real braking.
         vForward -= 900 * dt;
       } else {
-        vForward -= enginePower * 0.5 * dt;
+        // Reverse, but gently - a car does not build speed backwards.
+        vForward -= enginePower * 0.3 * dt;
       }
     }
 
     // Gentle drag: the car eases up to speed instead of snapping to it.
     vForward -= vForward * 0.45 * dt;
-    vForward = clampD(vForward, -maxSpeed * 0.4, maxSpeed);
+    // Reverse is capped much lower than forward speed.
+    vForward = clampD(vForward, -maxSpeed * 0.2, maxSpeed);
 
     // Lateral grip: enough to drive straight, loose enough to drift.
     vLateral *= math.exp(-gripLat * 5.0 * dt);
