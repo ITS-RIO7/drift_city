@@ -69,12 +69,21 @@ jobs:
               path.write_text(text)
               print("configured", name, "->", app_id)
 
+          # Label the app with its version so the installed build is obvious.
+          ver = "0"
+          pv = pathlib.Path("pubspec.yaml")
+          if pv.exists():
+              mv = re.search(r'^version:\s*([0-9]+\.[0-9]+\.[0-9]+)', pv.read_text(), re.M)
+              if mv:
+                  ver = mv.group(1)
+          label = "DriftCity " + ver
+
           manifest = pathlib.Path("android/app/src/main/AndroidManifest.xml")
           if manifest.exists():
               m = manifest.read_text()
-              m = re.sub(r'android:label="[^"]*"', 'android:label="DriftCity"', m)
+              m = re.sub(r'android:label="[^"]*"', 'android:label="' + label + '"', m)
               manifest.write_text(m)
-              print("labelled the app as DriftCity")
+              print("labelled the app as", label)
           PY
 
       # Print the resolved SDK versions so a future failure is easy to read.

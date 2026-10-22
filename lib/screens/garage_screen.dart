@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../app_info.dart';
 import '../game_state.dart';
 import '../models/car.dart';
 import '../widgets/car_viewer.dart';
@@ -57,7 +58,19 @@ class _GarageScreenState extends State<GarageScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _Coins(coins: player.coins),
+                  Row(
+                    children: [
+                      _Coins(coins: player.coins),
+                      const SizedBox(width: 10),
+                      Text(
+                        'v$kAppVersion',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                   IconButton(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
