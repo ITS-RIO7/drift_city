@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 
 import '../game/drift_game.dart';
 import '../game_state.dart';
@@ -23,7 +20,6 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   late final DriftGame _game;
-  StreamSubscription<AccelerometerEvent>? _accel;
   bool _reported = false;
 
   @override
@@ -36,7 +32,10 @@ class _GameScreenState extends State<GameScreen> {
       bodyColor: widget.bodyColor,
       onGameOver: _onGameOver,
     );
-    _game.useTilt = player.useTilt;
+    // Steering comes only from the on-screen buttons. (An earlier build also
+    // supported tilt steering; a bad reading there made the car turn in
+    // circles on its own, so it has been removed.)
+    _game.useTilt = false;
     _game.sensitivity = player.steerSensitivity;
     _game.buttonSize = player.buttonSize;
     _game.leftHanded = player.leftHanded;
@@ -46,18 +45,6 @@ class _GameScreenState extends State<GameScreen> {
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-    if (player.useTilt) {
-      // The phone is held in landscape, so the roll we steer with shows up on
-      // the x axis. The first reading becomes the neutral point, so simply
-      // holding the phone still steers straight (no runaway turning).
-      double? neutral;
-      _accel = accelerometerEventStream().listen((event) {
-        final base = neutral ?? event.x;
-        neutral = base;
-        _game.tiltValue = clampD((event.x - base) / 3.5, -1.0, 1.0);
-      });
-    }
   }
 
   void _onGameOver(int score) {
@@ -81,7 +68,6 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
-    _accel?.cancel();
     _game.hud.dispose();
     // The app stays landscape everywhere, so don't reset the orientation here.
     super.dispose();
@@ -102,7 +88,11 @@ class _GameScreenState extends State<GameScreen> {
                   game.overlays.remove('pause');
                   game.resumeEngine();
                 },
-                onQuit: () => Navigator.of(context).pop(),
+                onQuit: () {
+                  game.overlays.remove('pause');
+                  game.resumeEngine();
+                  Navigator.of(context).pop();
+                },
               ),
         },
       ),
@@ -137,6 +127,11 @@ class _HudOverlay extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () {
+                        // Let go of every control before pausing, so nothing is
+                        // still "held" when the game resumes.
+                        game.steerInput = 0;
+                        game.throttle = false;
+                        game.brake = false;
                         game.pauseEngine();
                         game.overlays.add('pause');
                       },
@@ -205,28 +200,19 @@ class _ControlsOverlay extends StatelessWidget {
 
     final steering = Row(
       children: [
-        if (!game.useTilt) ...[
-          _HoldButton(
-            icon: Icons.chevron_left,
-            size: size,
-            onDown: () => game.steerInput = -1,
-            onUp: () => game.steerInput = 0,
-          ),
-          const SizedBox(width: 12),
-          _HoldButton(
-            icon: Icons.chevron_right,
-            size: size,
-            onDown: () => game.steerInput = 1,
-            onUp: () => game.steerInput = 0,
-          ),
-        ] else
-          const Padding(
-            padding: EdgeInsets.only(left: 8),
-            child: Text(
-              'TILT STEERING ON',
-              style: TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-          ),
+        _HoldButton(
+          icon: Icons.chevron_left,
+          size: size,
+          onDown: () => game.steerInput = -1,
+          onUp: () => game.steerInput = 0,
+        ),
+        const SizedBox(width: 12),
+        _HoldButton(
+          icon: Icons.chevron_right,
+          size: size,
+          onDown: () => game.steerInput = 1,
+          onUp: () => game.steerInput = 0,
+        ),
       ],
     );
 
@@ -283,10 +269,14 @@ class _HoldButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = 72.0 * size;
-    return GestureDetector(
-      onTapDown: (_) => onDown(),
-      onTapUp: (_) => onUp(),
-      onTapCancel: onUp,
+    // A raw Listener is used instead of GestureDetector: for a hold button the
+    // pointer callbacks are more reliable and always report an up/cancel, so
+    // the control can never stay stuck on.
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) => onDown(),
+      onPointerUp: (_) => onUp(),
+      onPointerCancel: (_) => onUp(),
       child: Container(
         width: d,
         height: d,

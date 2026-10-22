@@ -233,6 +233,10 @@ class DriftGame extends FlameGame {
     if (timeLeft <= 0) {
       timeLeft = 0;
       isOver = true;
+      // Let go of every control so nothing stays held after the run.
+      steerInput = 0;
+      throttle = false;
+      brake = false;
       hud.value = HudData(
         score: score,
         multiplier: multiplier,

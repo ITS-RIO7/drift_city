@@ -49,12 +49,6 @@ class SettingsScreen extends StatelessWidget {
           const Divider(),
           const _SectionHeader('Controls'),
           SwitchListTile(
-            title: const Text('Tilt steering'),
-            subtitle: const Text('Steer by tilting the phone while driving'),
-            value: player.useTilt,
-            onChanged: (value) => context.read<PlayerData>().setTilt(value),
-          ),
-          SwitchListTile(
             title: const Text('Left-handed layout'),
             subtitle: const Text('Swap the steering and pedals to the other side'),
             value: player.leftHanded,
